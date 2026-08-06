@@ -1,0 +1,45 @@
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: vendor-invoice-approval
+  version: 3
+  createdBy: Priya
+  approvedBy: Ravi
+  authoredWith: flowforge-author
+spec:
+  description: Extract, validate, approve and post vendor invoices over $10K.
+  trigger:
+    event: vendor_invoice.created
+    source: any
+  steps:
+    - id: extract
+      type: ai.extract
+      name: Extract line items
+      params:
+        fields: line_items, vendor, total, currency
+        model: auto
+    - id: validate
+      type: mdm.validate
+      name: Validate vendor against master
+      params:
+        entity: vendors
+        match_on: vendor_id, tax_id
+    - id: amount
+      type: condition
+      name: Amount over 10000
+      params:
+        expression: total > 10000
+        on_false: auto_approve
+    - id: approve
+      type: human.approval
+      name: Cost-Center Manager approval
+      params:
+        approver: Cost-Center Manager
+        sla_hours: '48'
+      on_sla_breach: escalate
+    - id: post
+      type: integration.post
+      name: Post to ERP
+      params:
+        system: ERP
+        endpoint: erp.inbound.invoices

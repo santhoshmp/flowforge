@@ -1,0 +1,37 @@
+# Dependencies
+**/node_modules/
+
+# Build artifacts (app + dsl build output)
+app/dist/
+dsl/dist/
+
+# Go embedded UI (placeholder committed; real build is a release step)
+server-go/ui/dist/*
+!server-go/ui/dist/index.html
+
+# Go binaries
+*.exe
+server-go/flowforge
+
+# SQLite databases
+*.db
+*.db-*
+
+# Environment files
+.env
+!.env.example
+!.env.development
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.tsbuildinfo
+
+# Test/coverage
+coverage/
+*.out

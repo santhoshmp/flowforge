@@ -1,0 +1,11 @@
+# Build artifacts
+/flowforge
+/flowforge.exe
+*.exe
+
+# Runtime data
+/flowforge.db
+/flowforge.db-*
+
+# Test/cache
+*.out

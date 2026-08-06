@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://flowforge.dev/schemas/flowforge-v1.json",
+  "title": "flowforge/v1 Workflow",
+  "description": "The portable, versioned workflow artifact consumed by the editor, the control-plane API, and the standalone runner.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "const": "flowforge/v1" },
+    "kind": { "const": "Workflow" },
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version", "createdBy"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 1, "maxLength": 80 },
+        "version": { "type": "integer", "minimum": 1 },
+        "createdBy": { "type": "string", "minLength": 1 },
+        "approvedBy": { "type": "string" },
+        "authoredWith": { "type": "string" }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["trigger", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "trigger": {
+          "type": "object",
+          "required": ["event"],
+          "properties": { "event": { "type": "string", "minLength": 1 } },
+          "additionalProperties": { "type": "string" }
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["id", "type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "type": {
+          "enum": [
+            "trigger", "ai.extract", "ai.classify", "mdm.lookup", "mdm.validate",
+            "condition", "human.approval", "notify", "integration.post",
+            "integration.http", "script", "wait"
+          ]
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "params": { "type": "object", "additionalProperties": { "type": "string" } },
+        "on_sla_breach": { "type": "string" }
+      }
+    }
+  }
+}

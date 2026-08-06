@@ -1,0 +1,32 @@
+{
+  "name": "@flowforge/dsl",
+  "version": "0.1.0",
+  "description": "The flowforge/v1 workflow spec: JSON Schema, parser, and canonical serializer. The portable contract shared by the editor, control plane, and runner.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema.json": "./src/schema.json"
+  },
+  "files": ["dist", "src/schema.json"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.9"
+  }
+}
