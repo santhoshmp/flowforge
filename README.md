@@ -2,137 +2,194 @@
 
 **Describe it. Review it. Run it anywhere.**
 
-FlowForge is an open, lightweight enterprise workflow platform. You describe a business process in plain language, AI drafts the workflow, a human reviews and approves it in a visual editor — and the result runs centrally via API, or downloads as a single portable file that executes anywhere, even air-gapped.
+FlowForge is a downloadable, self-hostable enterprise workflow platform. You describe a business process in plain language, AI drafts the workflow, a human reviews and approves it in a visual editor — and the result runs centrally via API, or downloads as a single portable file that executes anywhere, even air-gapped.
 
-> **Status:** early prototype. The AI authoring loop, review editor, live step tracking, admin console, MDM module, and YAML export are demonstrated end-to-end in the prototype UI.
+> **Prototype — AI authoring and execution are functional; SSO/RBAC are deferred.**
 
 ---
 
-## Why FlowForge?
+## Quick start
 
-IBM BPM, jBPM, and Drools are powerful — and heavy. They demand BPMN/XML specialists, a big server footprint, and weeks to first workflow. Business users end up filing tickets instead of building automations.
-
-FlowForge is the deliberate opposite:
-
-| | The heavyweight way | The FlowForge way |
-|---|---|---|
-| Authoring | Weeks of BPMN/XML by specialists | One sentence → reviewed draft in under a minute |
-| Artifact | Proprietary, server-bound | One human-readable `.flow.yaml` you own |
-| Execution | Central only | Central API **or** standalone runner, anywhere |
-| AI | Absent or ungoverned | AI drafts, **a named human must approve** — audited |
-| Debugging | Black box until it breaks | Every step live on a timeline; retry from the failure |
-| Data | Free-text references | Golden records via built-in master data module |
-
-## The six pillars
-
-1. **Conversational authoring** — natural language → typed workflow draft with **per-step confidence scores** and **explicit AI assumptions** highlighted for confirmation.
-2. **Human approval as a trust primitive** — nothing executes without an approver. Every draft, edit, and approval lands on an immutable audit trail (who, when, which model).
-3. **API-first orchestration** — the UI is just a client. Everything is an API call: define, validate, deploy, execute, query, cancel, retry.
-4. **Portable execution** — every workflow exports as `flowforge/v1` YAML and runs offline with the standalone runner (`flowforge run invoice.flow.yaml`). MDM lookups degrade to a bundled snapshot; state can phone home when connectivity returns.
-5. **Step-level observability** — live instance timelines with per-step state, inputs, outputs, and duration. Retry resumes from the failed step only.
-6. **Master data management** — canonical entities (vendors, customers, products, employees) with golden records and stewardship. Workflows reference entities by ID, never free text — which is what makes AI generation reliable and executions traceable.
-
-## Quickstart (5 minutes)
+### Option A — Go single binary (recommended)
 
 ```bash
-# 1. Start the platform
-docker run -p 8080:8080 flowforge/server
+# Build the UI into the Go embed
+npm --prefix app install && npm --prefix app run build
+cp -r app/dist/* server-go/ui/dist/
 
-# 2. Open the Studio at http://localhost:8080 and type:
-#    "When a vendor invoice over $10K arrives, extract line items,
-#     validate against the vendor master, route to the cost-center manager
-#     for approval, escalate to Finance VP after 48 hours, then post to the ERP."
-
-# 3. Review the AI draft on canvas, confirm the highlighted assumptions,
-#    edit anything, then click "Approve & deploy".
-
-# 4. Execute it centrally:
-curl -X POST http://localhost:8080/api/v1/workflows/vendor-invoice-approval/executions \
-  -H "Content-Type: application/json" \
-  -d '{"entity": "vendors/V-10293", "input": {"total": 24310.00}}'
-
-# 5. …or take it with you and run it with zero dependencies:
-flowforge run vendor-invoice-approval.flow.yaml
+# Build and run the control plane
+cd server-go
+go build -o flowforge ./cmd/flowforge
+./flowforge serve          # http://localhost:8080
 ```
 
-## The workflow is a file
+On first launch the server is in **setup mode** — create an admin account via the UI setup screen (or `POST /api/v1/auth/setup`), then log in. The embedded Studio UI is served by the same binary.
 
-`flowforge/v1` is an open, versioned spec — the single artifact consumed by the AI author, the editor, the API, and the portable runner:
+### Option B — Node reference server + Vite dev UI
 
-```yaml
-apiVersion: flowforge/v1
-kind: Workflow
-metadata:
-  name: vendor-invoice-approval
-  version: 3
-  createdBy: priya
-  approvedBy: ravi            # required — no approval, no execution
-  authoredWith: flowforge-author (local llm)
-spec:
-  trigger:
-    event: vendor_invoice.created
-  steps:
-    - id: extract_line_items
-      type: ai.extract
-      params: { fields: "line_items, vendor, total, currency" }
-    - id: validate_vendor
-      type: mdm.validate
-      params: { entity: vendors, match_on: "vendor_id, tax_id", on_mismatch: route_to_steward }
-    - id: amount_check
-      type: condition
-      params: { expression: "total > 10000", on_false: auto_approve }
-    - id: manager_approval
-      type: human.approval
-      params: { approver: Cost-Center Manager, resolve_via: hr_hierarchy, sla_hours: "48" }
-      on_sla_breach: escalate
-    - id: post_to_erp
-      type: integration.post
-      params: { system: ERP, endpoint: erp.inbound.invoices }
+```bash
+# Terminal 1: control plane
+cd server && npm install && npm run dev     # API on :8080
+
+# Terminal 2: Studio UI (hot reload)
+cd app && npm install && npm run dev        # UI on :3000
 ```
 
-Spec changes go through public RFCs — the community builds on this file, so it is treated as sacred.
+### Enable real AI authoring (optional)
+
+From the **Admin → AI authoring model** card in the UI, pick a provider (OpenAI, OpenRouter, Groq, Together, **Ollama** local, **LM Studio** local, or custom), paste a key, **Test connection**, **Save**. Without a key, authoring uses a deterministic local generator.
+
+---
+
+## Key features
+
+| Feature | What it does |
+|---|---|
+| **Conversational authoring** | Natural-language prompt → typed workflow draft with per-step confidence scores and highlighted assumptions |
+| **Human approval gate** | Nothing executes until a named human approves the AI draft — and that approval is on the audit trail |
+| **Durable execution** | Step-by-step engine persisted to SQLite; survives restarts; human-task wait/resume; retry-from-failed-step; cancel |
+| **Condition evaluation** | Run-time input (e.g. `total: 24000`) drives `condition` steps; below-threshold auto-approves the next human step |
+| **Tracking dashboard** | Fleet KPIs, 14-day execution trends, outcome mix, per-workflow tracker with drill-down and inline actions |
+| **Step-level observability** | Live step timeline (pending → running → succeeded/failed/waiting) with outputs and durations |
+| **Master data management** | Golden-record entities (vendors, customers, products, employees); new records enter as *pending stewardship* |
+| **Step-controls registry** | Built-in controls + custom step types (add/disable/remove from the Admin console) |
+| **Sandboxed execution** | `script` steps run in a Starlark sandbox (no host fs/net); `integration` HTTP steps are gated by an egress allow-list + safe-mode |
+| **Built-in auth** | bcrypt + HMAC session tokens; first-run admin setup; setup-mode gating |
+| **Opt-in TLS** | Self-signed HTTPS auto-generated on first run (`FLOWFORGE_TLS=on`) |
+| **Portable artifact** | Export any workflow as a signed `flowforge/v1` YAML file |
+
+---
 
 ## Architecture
 
 ```
-┌──────────────────────────── control plane ────────────────────────────┐
-│  Studio (NL → AI draft → review → approve)   Admin console   MDM       │
-│  ──────────────────────────────────────────────────────────────────   │
-│  REST/GraphQL API  ·  durable orchestrator  ·  audit log  ·  vault    │
-└────────────────────────────────────────────────────────────────────────┘
-        ▲ central workers                       ▲ standalone runner
-        │ (webhooks, polling, retries)          │ (offline · air-gapped ·
-        │                                       │  phone-home optional)
-        └──────────── same flowforge/v1 artifact, same execution engine ──┘
+EnterpriseWorkflow/
+├── app/            React + Vite Studio UI (8 sections + AuthGate)
+├── server/         Node/TS control plane — reference implementation (Fastify + SQLite)
+├── dsl/            @flowforge/dsl — frozen flowforge/v1 contract (JSON Schema + parser + serializer)
+├── server-go/      Go distributable — single-binary control plane
+│   ├── cmd/flowforge/     CLI: serve | validate <file> | run <file> | version
+│   └── internal/
+│       ├── spec/          flowforge/v1 parse/validate/serialize + conformance tests
+│       ├── models/        domain types (JSON tags match the UI contract)
+│       ├── store/         SQLite (pure-Go modernc driver) schema + CRUD + seed
+│       ├── seed/          deterministic, relationship-correct demo dataset
+│       ├── engine/        durable execution (TickAll, approve/retry/cancel, conditions)
+│       ├── executor/      sandboxed script (Starlark) + egress-gated HTTP
+│       ├── ai/            deterministic generator + OpenAI-compatible LLM caller
+│       ├── settings/      runtime AI provider config (key masked)
+│       ├── policy/        safe-mode + egress allow-list
+│       ├── metrics/       dashboard aggregates
+│       ├── auth/          bcrypt + HMAC tokens + middleware
+│       └── api/           HTTP control plane mirroring /api/v1/*
+├── docs/            product-design, architecture, build-plan, progress, test-strategy, traceability, demo-runbook
+└── .gitignore
 ```
 
-- **Model-agnostic AI layer** — point it at OpenAI, Anthropic, Azure, or a fully local model (Ollama). Local model + standalone runner = authoring and execution with zero external calls.
-- **Human-in-the-loop twice** — at authoring time (approve the draft) and at execution time (`human.approval` steps with SLAs and escalation).
-- **Durable execution** — instance state survives restarts; replay and inspect any run.
+The Node `server/` is the **reference implementation** that defined the contract and UX. The Go `server-go/` is the **distributable** that targets the same contract — both pass the same conformance scenarios. The `dsl/` package is the **frozen `flowforge/v1` spec** shared by all three consumers (editor, API, runner).
 
-## API sketch
+---
 
-| Endpoint | Purpose |
+## Configuration (Go server)
+
+| Env var | Default | Description |
+|---|---|---|
+| `PORT` | `8080` | HTTP port |
+| `DB_PATH` | `flowforge.db` | SQLite database file |
+| `FLOWFORGE_AUTH` | `auto` | `auto` (first-run setup then token-required) or `off` |
+| `FLOWFORGE_TLS` | `off` | `on` generates a self-signed cert and serves HTTPS |
+| `FLOWFORGE_SAFE_MODE` | `off` | `on` disables script + arbitrary-HTTP steps |
+| `FLOWFORGE_EGRESS_ALLOW` | *(empty)* | Comma-separated host suffixes; when set, egress defaults to deny |
+| `OPENAI_API_KEY` | *(empty)* | For real LLM authoring (any OpenAI-compatible endpoint) |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Override for OpenRouter, Groq, Ollama, etc. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
+
+---
+
+## Running tests
+
+```bash
+# Go control plane (engine, API, auth, sandbox, policy, store, spec, seed consistency)
+cd server-go && go test ./...
+
+# Node reference server
+cd server && npm test
+
+# flowforge/v1 DSL contract
+cd dsl && npm test
+```
+
+All suites are green: **Go** (~30 tests), **Node** 16/16, **DSL** 14/14. See [`docs/test-strategy.md`](docs/test-strategy.md) for the scenario catalog (ENG, API, DSL, AI, MET, SEC, DATA).
+
+---
+
+## API surface (`/api/v1/*`)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Server health + model name |
+| GET | `/bootstrap` | One-shot load of all collections |
+| GET | `/metrics` | Fleet KPIs + 14-day series + per-workflow stats |
+| POST | `/ai/draft` | Author a draft from a prompt |
+| GET/POST | `/workflows` | List / create |
+| GET/PATCH | `/workflows/{id}` | Read / update |
+| POST | `/workflows/{id}/approve` | Human approval (required before deploy) |
+| GET/POST | `/workflows/{id}/executions` | Per-workflow executions / start a run |
+| GET | `/executions` | List all instances |
+| GET | `/executions/{id}` / `/steps` | Instance summary / step-level state |
+| POST | `/executions/{id}/approve` | Resolve a waiting human task |
+| POST | `/executions/{id}/retry` | Resume from the failed step |
+| POST | `/executions/{id}/cancel` | Cancel instance |
+| GET/POST | `/mdm` / `/mdm/{entity}` | Golden records / add record |
+| GET/POST/PATCH/DELETE | `/controls` / `/controls/{key}/toggle` | Step-control registry |
+| GET/PUT/POST | `/settings/ai` / `/settings/ai/test` | AI provider config + connection test |
+| GET/POST | `/auth/status` / `/auth/setup` / `/auth/login` / `/auth/me` | Auth + first-run setup |
+| GET/POST | `/audit` | Audit trail |
+
+---
+
+## Documentation
+
+| Document | For |
 |---|---|
-| `POST /api/v1/workflows` | Create from prompt (AI draft) or YAML |
-| `POST /api/v1/workflows/{id}/approve` | Human approval — required before deploy |
-| `POST /api/v1/workflows/{id}/executions` | Start an execution (idempotency-key supported) |
-| `GET  /api/v1/executions/{id}/steps` | Step-level state, outputs, durations |
-| `POST /api/v1/executions/{id}/retry` | Resume from the failed step |
-| `GET  /api/v1/mdm/{entity}` | Query golden records |
-| `GET  /api/v1/audit` | Full audit trail |
+| [`docs/demo-runbook.md`](docs/demo-runbook.md) | Running and demoing today |
+| [`docs/product-design.md`](docs/product-design.md) | Licensing, packaging, safety, edition split |
+| [`docs/architecture.md`](docs/architecture.md) | System architecture + deployment topologies |
+| [`docs/build-plan.md`](docs/build-plan.md) | Phased roadmap (P0–P6) |
+| [`docs/progress.md`](docs/progress.md) | Current status + changelog |
+| [`docs/test-strategy.md`](docs/test-strategy.md) | Test layers + scenario catalog |
+| [`docs/traceability.md`](docs/traceability.md) | Feature → code → tests matrix |
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Distributable binary | **Go 1.26** (stdlib net/http, embed.FS, modernc.org/sqlite) |
+| Reference server | **Node.js + TypeScript** (Fastify, better-sqlite3, Vitest) |
+| UI | **React 19 + Vite 7** (Tailwind, shadcn/ui, React Flow, Recharts) |
+| Contract | **@flowforge/dsl** (JSON Schema, Ajv, yaml) |
+| Script sandbox | **Starlark** (go.starlark.net — pure Go, no host I/O) |
+| Auth | bcrypt + HMAC-signed session tokens |
+| Database | SQLite (embedded, restart-safe) |
+
+---
 
 ## Roadmap
 
-- **v0.1 (MVP)** — NL → draft → approve → run → track loop; linear + branching flows; HTTP/email/Slack connectors; MDM registry; YAML export + container runner
-- **v0.2** — parallel branches, loops, sub-workflows, compensation; environments & versioning; RBAC/SSO; OpenAPI-import step generation
-- **v0.3** — MDM sync connectors + stewardship UI; runner fleet telemetry; template gallery
-- **v0.4** — process mining on execution history; AI copilot that learns from your edits
+| Phase | Status | Focus |
+|---|---|---|
+| Reference (Node) | ✅ | Contract + UX |
+| P0 Foundations | ✅ | DSL frozen, Go spec verified |
+| P1 Single binary | ✅ | Engine + SQLite + API + embedded UI + `serve` |
+| P2 Safety | ✅ | Auth + first-run + TLS + sandboxing (script + egress) |
+| P3 Distribution | ⬜ | Cross-compile, Docker, Helm, signed releases |
+| P4 Extensibility | ⬜ | Connector SDK, WASM plugins, templates |
+| P5 Enterprise | ⬜ | SSO/SAML, RBAC, Postgres, HA/Temporal |
 
-## Contributing
-
-FlowForge is free for everyone, forever — Apache-2.0. The best first contribution is a **connector**: small, well-scoped, high-value. See `CONTRIBUTING.md` (coming soon), and grab anything tagged `good first issue`.
+---
 
 ## License
 
-[Apache-2.0](LICENSE) — use it, fork it, run it anywhere. That's the point.
+Apache-2.0 — free for everyone.
