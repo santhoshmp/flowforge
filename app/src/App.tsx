@@ -90,7 +90,12 @@ function Shell() {
 
       {/* Main */}
       <main className="flex-1 px-8 py-8 max-w-6xl">
-        {page === 'home' && <Home onGoStudio={() => setPage('studio')} />}
+        {page === 'home' && (
+          <Home
+            onGoStudio={() => setPage('studio')}
+            onEditWorkflow={(wf) => { setEditWf(wf); setPage('studio'); }}
+          />
+        )}
         {page === 'dashboard' && <Dashboard onGoMonitor={() => setPage('monitor')} />}
         {page === 'studio' && <Studio onGoMonitor={() => setPage('monitor')} editWorkflow={editWf} onEditDone={() => setEditWf(null)} />}
         {page === 'workflows' && <Workflows onGoMonitor={() => setPage('monitor')} onEdit={(wf) => { setEditWf(wf); setPage('studio'); }} />}

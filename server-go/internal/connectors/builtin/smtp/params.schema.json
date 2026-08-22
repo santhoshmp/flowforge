@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "smtp params",
+  "type": "object",
+  "properties": {
+    "from": { "type": "string" },
+    "to": { "type": "string" },
+    "subject": { "type": "string" },
+    "body": { "type": "string" }
+  },
+  "required": ["from", "to", "subject", "body"]
+}

@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: FlowForge Control Plane API
+  version: 1.1.0
+  description: |
+    The FlowForge `/api/v1` surface, served identically by the Go distributable
+    (`flowforge serve`) and consumed by the Studio UI. Versioning follows
+    SemVer with an N-1 runner guarantee — see docs/versioning.md.
+
+    Auth: when auth is enabled (`FLOWFORGE_AUTH=auto`), all endpoints except
+    `/auth/status`, `/auth/setup`, and `/auth/login` require
+    `Authorization: Bearer <token>` (first-run setup creates the admin).
+servers:
+  - url: http://localhost:8080
+    description: Local control plane
+
+tags:
+  - { name: System }
+  - { name: Auth }
+  - { name: AI }
+  - { name: Workflows }
+  - { name: Executions }
+  - { name: MDM }
+  - { name: Controls }
+  - { name: Connectors }
+  - { name: Templates }
+  - { name: Secrets }
+  - { name: Audit }
+  - { name: Settings }
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [System]
+      summary: Server health + active authoring model
+      responses: { "200": { description: ok } }
+  /api/v1/bootstrap:
+    get:
+      tags: [System]
+      summary: One-shot load of workflows, instances, audit, MDM, controls
+      responses: { "200": { description: ok } }
+  /api/v1/metrics:
+    get:
+      tags: [System]
+      summary: Fleet KPIs, 14-day series, per-workflow stats
+      responses: { "200": { description: ok } }
+
+  /api/v1/auth/status:
+    get: { tags: [Auth], summary: Auth mode + whether first-run setup is pending, responses: { "200": { description: ok } } }
+  /api/v1/auth/setup:
+    post:
+      tags: [Auth]
+      summary: First-run admin creation (409 once a user exists)
+      requestBody: { content: { application/json: { schema: { type: object, required: [username, password], properties: { username: { type: string }, password: { type: string } } } } } } }
+      responses: { "200": { description: token + user }, "409": { description: already set up } }
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody: { content: { application/json: { schema: { type: object, required: [username, password], properties: { username: { type: string }, password: { type: string } } } } } }
+      responses: { "200": { description: token + user }, "401": { description: invalid credentials } }
+  /api/v1/auth/me:
+    get: { tags: [Auth], summary: Current session claims, responses: { "200": { description: ok } } }
+  /api/v1/auth/logout:
+    post: { tags: [Auth], summary: Logout (client-side token discard), responses: { "200": { description: ok } } }
+
+  /api/v1/ai/draft:
+    post:
+      tags: [AI]
+      summary: Author a workflow draft from a natural-language prompt
+      requestBody: { content: { application/json: { schema: { type: object, required: [prompt], properties: { prompt: { type: string } } } } } }
+      responses: { "200": { description: draft + source + model } }
+
+  /api/v1/workflows:
+    get: { tags: [Workflows], summary: List workflows, responses: { "200": { description: ok } } }
+    post:
+      tags: [Workflows]
+      summary: Create a draft workflow
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WorkflowCreate" } } } }
+      responses: { "200": { description: created } }
+  /api/v1/workflows/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Workflows], summary: Read, responses: { "200": { description: ok }, "404": { description: not found } } }
+    patch:
+      tags: [Workflows]
+      summary: Update (partial)
+      requestBody: { content: { application/json: { schema: { type: object } } } }
+      responses: { "200": { description: updated } }
+  /api/v1/workflows/{id}/approve:
+    post:
+      tags: [Workflows]
+      summary: Approve & deploy (gated)
+      description: |
+        Approval validates `connector` steps against the installed connector
+        registry and their params schemas (decision D1) — a workflow with an
+        unknown connector or missing required params is rejected with 400.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: deployed }, "400": { description: connector validation failed } }
+  /api/v1/workflows/{id}/executions:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Executions], summary: Per-workflow executions, responses: { "200": { description: ok } } }
+    post:
+      tags: [Executions]
+      summary: Start a run (optionally with run input)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { entity: { type: string }, input: { type: object } } } } } }
+      responses: { "200": { description: instance }, "400": { description: workflow not approved } }
+
+  /api/v1/executions:
+    get: { tags: [Executions], summary: List all instances, responses: { "200": { description: ok } } }
+  /api/v1/executions/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Executions], summary: Instance summary, responses: { "200": { description: ok } } }
+  /api/v1/executions/{id}/steps:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Executions], summary: Step-level state, responses: { "200": { description: ok } } }
+  /api/v1/executions/{id}/approve:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Executions], summary: Resolve a waiting human task, responses: { "200": { description: ok } } }
+  /api/v1/executions/{id}/retry:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Executions], summary: Resume from the failed step, responses: { "200": { description: ok } } }
+  /api/v1/executions/{id}/cancel:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Executions], summary: Cancel, responses: { "200": { description: ok } } }
+
+  /api/v1/mdm:
+    get: { tags: [MDM], summary: Golden-record entities, responses: { "200": { description: ok } } }
+  /api/v1/mdm/{entity}:
+    parameters: [{ name: entity, in: path, required: true, schema: { type: string } }]
+    get: { tags: [MDM], summary: One entity, responses: { "200": { description: ok } } }
+    post:
+      tags: [MDM]
+      summary: Add a record (enters as pending stewardship)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { record: { type: object, additionalProperties: { type: string } } } } } } }
+      responses: { "200": { description: updated entity } }
+
+  /api/v1/controls:
+    get: { tags: [Controls], summary: Step-control registry, responses: { "200": { description: ok } } }
+    post: { tags: [Controls], summary: Add a custom control, responses: { "200": { description: ok } } }
+  /api/v1/controls/{key}:
+    parameters: [{ name: key, in: path, required: true, schema: { type: string } }]
+    patch: { tags: [Controls], summary: Update, responses: { "200": { description: ok } } }
+    delete: { tags: [Controls], summary: Remove custom control (guarded by usage), responses: { "200": { description: ok } } }
+  /api/v1/controls/{key}/toggle:
+    parameters: [{ name: key, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Controls], summary: Enable/disable, responses: { "200": { description: ok } } }
+
+  /api/v1/connectors:
+    get:
+      tags: [Connectors]
+      summary: Installed connectors (embedded built-ins + drop-in dir)
+      responses: { "200": { description: list of connector summaries } }
+  /api/v1/connectors/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get:
+      tags: [Connectors]
+      summary: Connector manifest + params schema
+      responses: { "200": { description: ok }, "404": { description: not found } }
+  /api/v1/connectors/{id}/test:
+    post:
+      tags: [Connectors]
+      summary: Dry-run a connector (no network for http/smtp; wasm runs sandboxed)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                params: { type: object, additionalProperties: { type: string } }
+                input: { type: object }
+      responses: { "200": { description: "{ok, preview, warnings?, result?, logs?}" } }
+
+  /api/v1/templates:
+    get:
+      tags: [Templates]
+      summary: Template gallery (validated flowforge/v1 artifacts)
+      responses: { "200": { description: "{id, name, description, category, steps}[]" } }
+  /api/v1/templates/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { tags: [Templates], summary: One template document, responses: { "200": { description: ok }, "404": { description: not found } } }
+  /api/v1/templates/{id}/instantiate:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Templates], summary: Create a draft workflow from a template, responses: { "200": { description: draft workflow }, "404": { description: not found } } }
+
+  /api/v1/secrets:
+    get:
+      tags: [Secrets]
+      summary: Secret NAMES only (values are never returned)
+      responses: { "200": { description: "{names: string[]}" } }
+    put:
+      tags: [Secrets]
+      summary: Store a secret (AES-256-GCM encrypted at rest)
+      requestBody: { content: { application/json: { schema: { type: object, required: [name, value], properties: { name: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }, value: { type: string } } } } } }
+      responses: { "200": { description: stored } }
+  /api/v1/secrets/{name}:
+    parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+    delete: { tags: [Secrets], summary: Delete a secret, responses: { "200": { description: ok }, "404": { description: not found } } }
+
+  /api/v1/audit:
+    get: { tags: [Audit], summary: Append-only audit trail, responses: { "200": { description: ok } } }
+    post: { tags: [Audit], summary: Append an entry, responses: { "200": { description: ok } } }
+
+  /api/v1/settings/ai:
+    get: { tags: [Settings], summary: AI provider config (key masked), responses: { "200": { description: ok } } }
+    put: { tags: [Settings], summary: Update AI provider config, responses: { "200": { description: ok } } }
+  /api/v1/settings/ai/test:
+    post: { tags: [Settings], summary: Test an AI provider connection, responses: { "200": { description: "{ok, latencyMs, models?}" } } }
+
+components:
+  schemas:
+    WorkflowCreate:
+      type: object
+      required: [name, description, prompt, steps]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        prompt: { type: string }
+        aiModel: { type: string }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [id, type, name, params, confidence, assumptions]
+            properties:
+              id: { type: string }
+              type:
+                type: string
+                description: Step type — a built-in, a custom control key, or "connector" (params.connector names the registry entry)
+              name: { type: string }
+              params: { type: object, additionalProperties: { type: string } }
+              confidence: { type: integer, minimum: 0, maximum: 100 }
+              assumptions: { type: array, items: { type: string } }

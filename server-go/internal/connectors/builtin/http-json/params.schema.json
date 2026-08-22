@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "http-json params",
+  "type": "object",
+  "properties": {
+    "url": { "type": "string", "description": "Absolute target URL" },
+    "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+    "body": { "type": "string", "description": "Request body (JSON text, may embed ${input.*} refs)" }
+  },
+  "required": ["url"]
+}

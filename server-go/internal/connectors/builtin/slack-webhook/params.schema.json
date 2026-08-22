@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "slack-webhook params",
+  "type": "object",
+  "properties": {
+    "text": { "type": "string", "description": "Message text (may embed ${input.*} refs)" }
+  },
+  "required": ["text"]
+}

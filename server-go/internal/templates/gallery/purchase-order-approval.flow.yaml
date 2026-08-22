@@ -1,0 +1,44 @@
+# flowforge/v1 — portable workflow definition
+# Run anywhere: flowforge run purchase-order-approval.flow.yaml
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: purchase-order-approval
+  version: 1
+  createdBy: FlowForge templates
+  authoredWith: template
+spec:
+  description: Validate vendor and approve purchase orders over $5K, then post to SAP.
+  trigger:
+    event: purchase_order.created
+  steps:
+    - id: validate_vendor
+      type: mdm.validate
+      name: Validate vendor
+      params:
+        entity: vendors
+        match_on: vendor_id
+    - id: amount_check
+      type: condition
+      name: Amount over 5000?
+      params:
+        expression: total > 5000
+        on_false: auto_approve
+    - id: mgr_approval
+      type: human.approval
+      name: Procurement Manager approval
+      params:
+        approver: Procurement Manager
+        sla_hours: "24"
+      on_sla_breach: escalate
+    - id: notify_requester
+      type: notify
+      name: Notify requester
+      params:
+        channel: email
+    - id: post_sap
+      type: integration.post
+      name: Post to SAP
+      params:
+        system: SAP
+        endpoint: sap.inbound.orders

@@ -1,0 +1,17 @@
+# flowforge connector manifest — see docs/decisions.md D1/D3
+id: http-json
+name: HTTP / JSON
+version: 0.1.0
+description: Generic JSON-over-HTTP call with templated method, URL, headers, and body.
+category: generic
+executor: http
+auth:
+  mode: none
+paramsSchema: params.schema.json
+http:
+  method: "${params.method}"
+  url: "${params.url}"
+  headers:
+    Content-Type: application/json
+    Accept: application/json
+  body: "${params.body}"

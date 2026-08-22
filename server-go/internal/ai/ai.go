@@ -19,11 +19,11 @@ import (
 )
 
 type GeneratedDraft struct {
-	Name               string                `json:"name"`
-	Description        string                `json:"description"`
-	Steps              []models.WorkflowStep `json:"steps"`
-	Model              string                `json:"model"`
-	OverallConfidence  int                   `json:"overallConfidence"`
+	Name              string                `json:"name"`
+	Description       string                `json:"description"`
+	Steps             []models.WorkflowStep `json:"steps"`
+	Model             string                `json:"model"`
+	OverallConfidence int                   `json:"overallConfidence"`
 }
 
 type DraftResult struct {

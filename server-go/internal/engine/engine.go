@@ -11,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	// The connectors package registers the `connector` step executor with the
+	// executor registry on init; importing it here makes connector execution a
+	// guaranteed part of the engine, not an accident of route wiring.
+	_ "github.com/flowforge/flowforge/internal/connectors"
 	"github.com/flowforge/flowforge/internal/executor"
 	"github.com/flowforge/flowforge/internal/models"
 	"github.com/flowforge/flowforge/internal/policy"
@@ -140,12 +144,10 @@ func TickAll(s *store.Store, pol *policy.Policy) {
 	}
 }
 
-// runReal executes a configured script/integration step for real; returns
-// real=false when the step isn't configured for real execution (simulate).
+// runReal executes a configured step for real via the executor registry
+// (script sandbox, egress-gated HTTP, connectors); returns real=false when no
+// executor handles the type or the step isn't configured (simulate).
 func runReal(wfStep *models.WorkflowStep, input map[string]any, pol *policy.Policy) (out string, err error, real bool, dms int) {
-	if !(strings.HasPrefix(wfStep.Type, "integration.") || wfStep.Type == "script") {
-		return "", nil, false, 0
-	}
 	start := time.Now()
 	out, err, real = executor.Run(wfStep, input, pol)
 	return out, err, real, int(time.Since(start).Milliseconds())

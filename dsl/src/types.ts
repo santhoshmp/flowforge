@@ -13,12 +13,13 @@ export type StepType =
   | 'integration.post'
   | 'integration.http'
   | 'script'
-  | 'wait';
+  | 'wait'
+  | 'connector';
 
 export const STEP_TYPES: StepType[] = [
   'trigger', 'ai.extract', 'ai.classify', 'mdm.lookup', 'mdm.validate',
   'condition', 'human.approval', 'notify', 'integration.post',
-  'integration.http', 'script', 'wait',
+  'integration.http', 'script', 'wait', 'connector',
 ];
 
 export interface SpecStep {

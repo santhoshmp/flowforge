@@ -12,17 +12,17 @@ import (
 const dayMs = 24 * 60 * 60 * 1000
 
 type Fleet struct {
-	Workflows       int     `json:"workflows"`
-	Deployed        int     `json:"deployed"`
-	TotalRuns       int     `json:"totalRuns"`
-	Running         int     `json:"running"`
-	Waiting         int     `json:"waiting"`
-	Failed          int     `json:"failed"`
-	Completed       int     `json:"completed"`
-	Cancelled       int     `json:"cancelled"`
-	SuccessRate     *float64 `json:"successRate"`
-	AvgDurationMs   *int    `json:"avgDurationMs"`
-	HumanTasksPending int   `json:"humanTasksPending"`
+	Workflows         int      `json:"workflows"`
+	Deployed          int      `json:"deployed"`
+	TotalRuns         int      `json:"totalRuns"`
+	Running           int      `json:"running"`
+	Waiting           int      `json:"waiting"`
+	Failed            int      `json:"failed"`
+	Completed         int      `json:"completed"`
+	Cancelled         int      `json:"cancelled"`
+	SuccessRate       *float64 `json:"successRate"`
+	AvgDurationMs     *int     `json:"avgDurationMs"`
+	HumanTasksPending int      `json:"humanTasksPending"`
 }
 
 type DayBucket struct {
@@ -51,10 +51,10 @@ type WorkflowMetric struct {
 }
 
 type Metrics struct {
-	Fleet      Fleet            `json:"fleet"`
-	ByDay      []DayBucket      `json:"byDay"`
-	StatusMix []map[string]any  `json:"statusMix"`
-	Workflows  []WorkflowMetric `json:"workflows"`
+	Fleet     Fleet            `json:"fleet"`
+	ByDay     []DayBucket      `json:"byDay"`
+	StatusMix []map[string]any `json:"statusMix"`
+	Workflows []WorkflowMetric `json:"workflows"`
 }
 
 func instanceDurationMs(i models.Instance) (int, bool) {

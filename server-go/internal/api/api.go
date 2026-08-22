@@ -40,6 +40,7 @@ func New(s *store.Store, authMode string) *Server {
 	}
 	srv := &Server{store: s, mux: http.NewServeMux(), authMode: authMode}
 	srv.routes()
+	srv.registerExtRoutes()
 	srv.api = auth.Wrap(s, authMode, srv.mux)
 	return srv
 }
@@ -273,6 +274,11 @@ func (s *Server) approveWorkflow(w http.ResponseWriter, r *http.Request) {
 	wf, err := s.store.GetWorkflow(id)
 	if err != nil || wf == nil {
 		writeErr(w, 404, "workflow not found")
+		return
+	}
+	// Approval gate (D1): connector steps must resolve against the registry.
+	if err := s.validateConnectors(wf); err != nil {
+		writeErr(w, 400, err.Error())
 		return
 	}
 	wf.Status = models.StatusDeployed

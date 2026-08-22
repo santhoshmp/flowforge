@@ -1,0 +1,39 @@
+# flowforge/v1 — portable workflow definition
+# Run anywhere: flowforge run leave-request-approval.flow.yaml
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: leave-request-approval
+  version: 1
+  createdBy: FlowForge templates
+  authoredWith: template
+spec:
+  description: Validate leave balance and route to manager for approval.
+  trigger:
+    event: leave.submitted
+  steps:
+    - id: validate_emp
+      type: mdm.validate
+      name: Validate employee
+      params:
+        entity: employees
+        match_on: emp_id
+    - id: balance_check
+      type: condition
+      name: Balance available?
+      params:
+        expression: balance > 0
+        on_false: deny
+    - id: mgr_approval
+      type: human.approval
+      name: Manager approval
+      params:
+        approver: Manager
+        sla_hours: "24"
+      on_sla_breach: escalate
+    - id: post_hris
+      type: integration.post
+      name: Post to HRIS
+      params:
+        system: HRIS
+        endpoint: hris.inbound.leave

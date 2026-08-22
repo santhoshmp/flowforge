@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, Clock, FileText, Sparkles, ShieldCheck, Database, Download, UserCheck, Blocks, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, AlertTriangle, CheckCircle2, Clock, FileText, Sparkles, ShieldCheck, Database, Download, UserCheck, Blocks, Plus, Pencil, Trash2, Plug } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { StatusPill, StepIcon, COLOR_CLASSES, ICONS } from '@/components/step';
 import AIConfigCard from '@/components/AIConfigCard';
@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import type { AuditEntry, ControlDef } from '@/lib/types';
+import { api } from '@/lib/api';
+import type { ConnectorInfo } from '@/lib/api';
 import { cn, timeAgo } from '@/lib/utils';
 
 const KIND_ICON: Record<AuditEntry['kind'], typeof Sparkles> = {
@@ -25,7 +27,12 @@ export default function Admin() {
   const { instances, audit, workflows, controls, toggleControl, addControl, updateControl, removeControl, refresh } = useStore();
   const [dialog, setDialog] = useState<{ mode: 'add' } | { mode: 'edit'; original: ControlDef } | null>(null);
   const [form, setForm] = useState<ControlForm>(EMPTY_FORM);
+  const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
   const usageCount = (t: string) => workflows.reduce((n, w) => n + w.steps.filter((s) => s.type === t).length, 0);
+
+  useEffect(() => {
+    api.getConnectors().then(setConnectors).catch(() => setConnectors([]));
+  }, []);
 
   const openAdd = () => { setForm(EMPTY_FORM); setDialog({ mode: 'add' }); };
   const openEdit = (c: ControlDef) => {
@@ -84,6 +91,42 @@ export default function Admin() {
       </div>
 
       <AIConfigCard onSaved={refresh} />
+
+      {/* Connectors (P4.2 Connector SDK) */}
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <Plug className="h-4 w-4 text-teal-600" />
+          <span className="font-semibold text-sm">Connectors</span>
+          <span className="ml-auto text-[11px] text-muted-foreground">{connectors.length} installed</span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Typed integrations for <code className="text-[10px]">type: connector</code> steps. Drop a directory with a <code className="text-[10px]">connector.yaml</code> into{' '}
+          <code className="text-[10px]">FLOWFORGE_CONNECTOR_DIR</code> to add more; approval validates connector steps against these manifests.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {connectors.map((c) => (
+            <div key={c.id} className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium truncate">{c.name}</span>
+                {c.builtin ? (
+                  <span className="ml-auto shrink-0 rounded-full border bg-white px-2 py-0.5 text-[10px] text-muted-foreground">built-in</span>
+                ) : (
+                  <span className="ml-auto shrink-0 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] text-teal-700">drop-in</span>
+                )}
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                {c.id} · v{c.version} · executor <span className="font-medium text-foreground">{c.executor}</span> · auth {c.authMode}
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{c.description}</p>
+            </div>
+          ))}
+          {connectors.length === 0 && (
+            <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground sm:col-span-2 lg:col-span-3">
+              No connectors loaded (connectors are available on the Go control plane).
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Human task queue */}

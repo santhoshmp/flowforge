@@ -51,7 +51,7 @@ type Claims struct {
 	Sub string `json:"sub"` // user id
 	U   string `json:"u"`   // username
 	R   string `json:"r"`   // role
-	Exp int64 `json:"exp"`  // unix expiry
+	Exp int64  `json:"exp"` // unix expiry
 }
 
 func serverSecret(s *store.Store) string {

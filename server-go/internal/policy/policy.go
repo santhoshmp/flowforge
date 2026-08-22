@@ -14,9 +14,9 @@ import (
 
 // Policy is the resolved safety policy.
 type Policy struct {
-	SafeMode       bool     // disable script + arbitrary-HTTP steps
-	Allow          []string // host suffixes; when non-empty, egress defaults to deny
-	DenyByDefault  bool
+	SafeMode      bool     // disable script + arbitrary-HTTP steps
+	Allow         []string // host suffixes; when non-empty, egress defaults to deny
+	DenyByDefault bool
 }
 
 // FromEnv builds the policy from environment variables.

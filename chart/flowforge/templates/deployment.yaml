@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flowforge.fullname" . }}
+  labels:
+    {{- include "flowforge.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate   # SQLite on RWO storage: avoid two writers during rollout
+  selector:
+    matchLabels:
+      {{- include "flowforge.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "flowforge.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: flowforge
+          image: {{ include "flowforge.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["serve"]
+          env:
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
+            - name: DB_PATH
+              value: /data/flowforge.db
+            - name: FLOWFORGE_AUTH
+              value: {{ .Values.auth.mode | quote }}
+            {{- if .Values.tls.enabled }}
+            - name: FLOWFORGE_TLS
+              value: "on"
+            {{- end }}
+            {{- if .Values.safeMode }}
+            - name: FLOWFORGE_SAFE_MODE
+              value: "on"
+            {{- end }}
+            {{- if .Values.egressAllow }}
+            - name: FLOWFORGE_EGRESS_ALLOW
+              value: {{ .Values.egressAllow | quote }}
+            {{- end }}
+            {{- range .Values.extraEnv }}
+            - {{ toYaml . | nindent 14 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            {{- range .Values.extraVolumeMounts }}
+            - {{ toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          {{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+          persistentVolumeClaim:
+            claimName: {{ include "flowforge.fullname" . }}
+          {{- else if .Values.persistence.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- range .Values.extraVolumes }}
+        - {{ toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,17 @@
+# flowforge connector manifest — see docs/decisions.md D1/D3
+# The webhook URL is a secret (secrets store), never inlined in workflows.
+id: slack-webhook
+name: Slack Webhook
+version: 0.1.0
+description: Post a message to Slack via an incoming webhook.
+category: messaging
+executor: http
+auth:
+  mode: none
+paramsSchema: params.schema.json
+http:
+  method: POST
+  url: "${secret.SLACK_WEBHOOK_URL}"
+  headers:
+    Content-Type: application/json
+  body: '{"text": "${params.text}"}'

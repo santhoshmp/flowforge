@@ -127,6 +127,27 @@ export interface DayBucket {
   total: number;
 }
 
+export interface TemplateInfo {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  steps: number;
+}
+
+export interface ConnectorInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  category: string;
+  executor: string;
+  authMode: string;
+  paramsSchema?: Record<string, unknown>;
+  builtin: boolean;
+  dir?: string;
+}
+
 export interface WorkflowMetric {
   id: string;
   name: string;
@@ -218,4 +239,10 @@ export const api = {
     http<AISettings>('/api/v1/settings/ai', { method: 'PUT', body: json(cfg) }),
   testAISettings: (cfg: AIPayload) =>
     http<AITestResult>('/api/v1/settings/ai/test', { method: 'POST', body: json(cfg) }),
+
+  getTemplates: () => http<TemplateInfo[]>('/api/v1/templates'),
+  instantiateTemplate: (id: string) =>
+    http<Workflow>(`/api/v1/templates/${id}/instantiate`, { method: 'POST', body: '{}' }),
+  getConnectors: () => http<ConnectorInfo[]>('/api/v1/connectors'),
+  getSecretNames: () => http<{ names: string[] }>('/api/v1/secrets'),
 };

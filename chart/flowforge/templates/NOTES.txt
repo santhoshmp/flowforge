@@ -1,0 +1,20 @@
+FlowForge {{ .Chart.AppVersion }} is deployed.
+
+1. Get the app URL:
+{{- if .Values.ingress.enabled }}
+   http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+   export POD_NAME=$(kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -o jsonpath='{.items[0].metadata.name}')
+   kubectl port-forward -n {{ .Release.Namespace }} $POD_NAME 8080:{{ .Values.service.port }}
+   open http://localhost:8080
+{{- end }}
+
+2. First run: the control plane is in SETUP MODE — open the UI and create the
+   admin account (nothing else is exposed until then).
+
+3. Data: SQLite persists on the PVC "{{ include "flowforge.fullname" . }}"
+   ({{ .Values.persistence.size }}). Single replica by design — see
+   docs/architecture.md for the HA topology (enterprise edition).
+
+4. Safety: set `safeMode: true` and/or `egressAllow:` to lock down script,
+   integration, and connector execution for this deployment.

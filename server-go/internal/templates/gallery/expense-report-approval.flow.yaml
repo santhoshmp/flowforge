@@ -1,0 +1,39 @@
+# flowforge/v1 — portable workflow definition
+# Run anywhere: flowforge run expense-report-approval.flow.yaml
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: expense-report-approval
+  version: 1
+  createdBy: FlowForge templates
+  authoredWith: template
+spec:
+  description: Extract receipt data and approve expenses over $500.
+  trigger:
+    event: expense.submitted
+  steps:
+    - id: extract_receipt
+      type: ai.extract
+      name: Extract receipt data
+      params:
+        fields: amount, category, date, vendor
+        model: auto
+    - id: amount_check
+      type: condition
+      name: Amount over 500?
+      params:
+        expression: total > 500
+        on_false: auto_approve
+    - id: mgr_approval
+      type: human.approval
+      name: Manager approval
+      params:
+        approver: Manager
+        sla_hours: "48"
+      on_sla_breach: escalate
+    - id: post_finance
+      type: integration.post
+      name: Post to Finance
+      params:
+        system: Finance
+        endpoint: finance.inbound.expenses

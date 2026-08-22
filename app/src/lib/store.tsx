@@ -33,6 +33,7 @@ interface Store {
   retryInstance: (instanceId: string) => Promise<void>;
   cancelInstance: (instanceId: string) => Promise<void>;
   addMDMRecord: (entityKey: string, rec: MDMRecord) => Promise<void>;
+  instantiateTemplate: (id: string) => Promise<Workflow>;
   toggleControl: (key: string) => Promise<void>;
   addControl: (def: ControlDef) => Promise<void>;
   updateControl: (key: string, patch: Partial<ControlDef>) => Promise<void>;
@@ -100,6 +101,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const retryInstance = useCallback(async (instanceId: string) => { await api.retryInstance(instanceId); await refresh(); }, [refresh]);
   const cancelInstance = useCallback(async (instanceId: string) => { await api.cancelInstance(instanceId); await refresh(); }, [refresh]);
   const addMDMRecord = useCallback(async (entityKey: string, rec: MDMRecord) => { await api.addMDMRecord(entityKey, rec); await refresh(); }, [refresh]);
+  const instantiateTemplate = useCallback(async (id: string) => { const wf = await api.instantiateTemplate(id); await refresh(); return wf; }, [refresh]);
   const toggleControl = useCallback(async (key: string) => { await api.toggleControl(key); await refresh(); }, [refresh]);
   const addControl = useCallback(async (def: ControlDef) => { await api.addControl(def); await refresh(); }, [refresh]);
   const updateControl = useCallback(async (key: string, patch: Partial<ControlDef>) => { await api.updateControl(key, patch); await refresh(); }, [refresh]);
@@ -109,9 +111,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     loaded, workflows, instances, audit, mdm, controls, controlMap, refresh,
     generateDraft, createWorkflowFromDraft, updateWorkflow, approveAndDeploy, runWorkflow,
-    approveTask, retryInstance, cancelInstance, addMDMRecord,
+    approveTask, retryInstance, cancelInstance, addMDMRecord, instantiateTemplate,
     toggleControl, addControl, updateControl, removeControl, logAudit,
-  }), [loaded, workflows, instances, audit, mdm, controls, controlMap, refresh, generateDraft, createWorkflowFromDraft, updateWorkflow, approveAndDeploy, runWorkflow, approveTask, retryInstance, cancelInstance, addMDMRecord, toggleControl, addControl, updateControl, removeControl, logAudit]);
+  }), [loaded, workflows, instances, audit, mdm, controls, controlMap, refresh, generateDraft, createWorkflowFromDraft, updateWorkflow, approveAndDeploy, runWorkflow, approveTask, retryInstance, cancelInstance, addMDMRecord, instantiateTemplate, toggleControl, addControl, updateControl, removeControl, logAudit]);
 
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

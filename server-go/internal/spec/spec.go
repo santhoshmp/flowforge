@@ -63,6 +63,7 @@ var (
 		"mdm.lookup": true, "mdm.validate": true, "condition": true,
 		"human.approval": true, "notify": true, "integration.post": true,
 		"integration.http": true, "script": true, "wait": true,
+		"connector": true,
 	}
 )
 

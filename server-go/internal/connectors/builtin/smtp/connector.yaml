@@ -1,0 +1,22 @@
+# flowforge connector manifest — see docs/decisions.md D1/D3
+# SMTP credentials and host come from the secrets store / environment.
+id: smtp
+name: Email (SMTP)
+version: 0.1.0
+description: Send an email over SMTP using credentials from the secrets store.
+category: messaging
+executor: smtp
+# SMTP credentials are referenced directly by the smtp block (userSecret/
+# passSecret), so no connector-level auth material is needed here.
+auth:
+  mode: none
+paramsSchema: params.schema.json
+smtp:
+  host: "${secret.SMTP_HOST}"
+  port: 587
+  from: "${params.from}"
+  to: "${params.to}"
+  subject: "${params.subject}"
+  body: "${params.body}"
+  userSecret: SMTP_USER
+  passSecret: SMTP_PASS

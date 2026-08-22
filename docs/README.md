@@ -15,6 +15,8 @@ Start here. FlowForge is a downloadable, self-hostable enterprise workflow platf
 ## Engineering reference
 
 - **[design-and-production-plan.md](./design-and-production-plan.md)** — the detailed domain model, data schema, Temporal execution design, API contract, and the original production plan.
+- **[openapi.yaml](./openapi.yaml)** — the published `/api/v1` contract.
+- **[release.md](./release.md)** — release runbook: tag → matrix + SBOM + cosign + ghcr; verifying releases; artifact signing.
 
 ## Development process (living docs — keep updated)
 
@@ -38,11 +40,21 @@ Start here. FlowForge is a downloadable, self-hostable enterprise workflow platf
 ## Repository layout (current)
 
 ```
-app/         React + Vite Studio UI (reference frontend)
-server/      Node/TS control plane + SQLite + engine (reference backend)
-dsl/         @flowforge/dsl — the frozen flowforge/v1 contract (schema + parser + serializer, tested)
-server-go/   Go distributable skeleton (spec + CLI; engine/embedded UI pending)
-docs/        this documentation
+app/            React + Vite Studio UI (reference frontend)
+server/         Node/TS control plane + SQLite + engine (reference backend)
+dsl/            @flowforge/dsl — the frozen flowforge/v1 contract (schema + parser + serializer, tested)
+server-go/      Go distributable: single binary (engine + SQLite + REST + embedded UI + sandboxed execution)
+  └─ internal/  … connectors (SDK + built-ins), wasm (plugin runtime), templates (gallery), secrets (vault)
+connectors/     User drop-in connector directory (FLOWFORGE_CONNECTOR_DIR) — see connectors/README.md
+docs/           this documentation
 ```
 
-The reference (Node) implementation and the Go distributable both target the **frozen `flowforge/v1` contract** in `dsl/`. See [architecture.md](./architecture.md).
+The reference (Node) implementation and the Go distributable both target the
+**frozen `flowforge/v1` contract** in `dsl/`. See [architecture.md](./architecture.md).
+
+## Extensibility docs
+
+- **[decisions.md](./decisions.md)** — decision record (D1 connector step type, D2 WASM ABI, D3 connector format, D4 compatibility policy).
+- **[versioning.md](./versioning.md)** — SemVer + N-1 compatibility policy for the API and DSL.
+- **[openapi.yaml](./openapi.yaml)** — the published `/api/v1` contract.
+- **[quickstart.md](./quickstart.md)** — 5-minute quickstart with the Go binary.

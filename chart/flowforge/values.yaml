@@ -1,0 +1,72 @@
+# Default values for the FlowForge control plane.
+#
+# Topology note: FlowForge uses embedded SQLite on a ReadWriteOnce volume, so
+# the chart runs a single replica. Scale-out (Postgres + HA) arrives with the
+# enterprise edition (P5) — see docs/architecture.md.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/flowforge/flowforge
+  # Defaults to .Chart.AppVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# First-run admin creation happens in the UI (setup mode). "off" disables auth
+# entirely (dev only).
+auth:
+  mode: auto
+
+tls:
+  # Opt-in self-signed TLS served by the binary itself (browsers will warn).
+  enabled: false
+
+safeMode: false
+
+# Comma-separated host suffixes; when set, outbound egress defaults to deny.
+egressAllow: ""
+
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 1Gi
+  existingClaim: ""
+
+ingress:
+  enabled: false
+  className: ""
+  host: flowforge.example.com
+  # Extra annotations (tls issuer, etc.) — merged onto the Ingress.
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Additional env vars (e.g. OPENAI_API_KEY from a secret) and volumes
+# (e.g. a connector directory mounted at /data/connectors with
+# FLOWFORGE_CONNECTOR_DIR set via extraEnv).
+extraEnv: []
+#  - name: OPENAI_API_KEY
+#    valueFrom:
+#      secretKeyRef:
+#        name: flowforge-ai
+#        key: api-key
+extraVolumes: []
+extraVolumeMounts: []

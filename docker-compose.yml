@@ -1,0 +1,31 @@
+# Local FlowForge: control plane + durable SQLite in a named volume.
+#
+#   docker compose up -d          # http://localhost:8080 (first run: setup mode)
+#
+# Hardening toggles are commented — enable per deployment needs.
+
+services:
+  flowforge:
+    build: .
+    image: flowforge:local
+    container_name: flowforge
+    ports:
+      - "8080:8080"
+    environment:
+      FLOWFORGE_AUTH: auto
+      # FLOWFORGE_TLS: on            # self-signed https (browser will warn)
+      # FLOWFORGE_SAFE_MODE: on      # disable script/integration/connector execution
+      # FLOWFORGE_EGRESS_ALLOW: api.openai.com   # default-deny egress to this suffix list
+      # FLOWFORGE_CONNECTOR_DIR: /data/connectors
+    volumes:
+      - flowforge-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  flowforge-data:

@@ -12,7 +12,8 @@ export type StepType =
   | 'integration.post'
   | 'integration.http'
   | 'script'
-  | 'wait';
+  | 'wait'
+  | 'connector';
 
 export type StepStatus = 'pending' | 'running' | 'waiting' | 'succeeded' | 'failed' | 'skipped';
 export type InstanceStatus = 'running' | 'waiting' | 'failed' | 'completed' | 'cancelled';
@@ -119,4 +120,5 @@ export const STEP_META: Record<StepType, { label: string; color: string; icon: s
   'integration.http': { label: 'HTTP Call', color: 'cyan', icon: 'Globe' },
   script: { label: 'Script', color: 'slate', icon: 'Code' },
   wait: { label: 'Wait / SLA', color: 'orange', icon: 'Timer' },
+  connector: { label: 'Connector', color: 'teal', icon: 'Plug' },
 };

@@ -54,47 +54,47 @@ type WorkflowStep struct {
 
 // Workflow is a versioned, authored workflow definition.
 type Workflow struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Prompt      string          `json:"prompt"`
-	Status      WorkflowStatus  `json:"status"`
-	Version     int             `json:"version"`
-	Steps       []WorkflowStep  `json:"steps"`
-	CreatedBy   string          `json:"createdBy"`
-	ApprovedBy  string          `json:"approvedBy,omitempty"`
-	AIModel     string          `json:"aiModel"`
-	CreatedAt   string          `json:"createdAt"`
-	Runs        int             `json:"runs"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Prompt      string         `json:"prompt"`
+	Status      WorkflowStatus `json:"status"`
+	Version     int            `json:"version"`
+	Steps       []WorkflowStep `json:"steps"`
+	CreatedBy   string         `json:"createdBy"`
+	ApprovedBy  string         `json:"approvedBy,omitempty"`
+	AIModel     string         `json:"aiModel"`
+	CreatedAt   string         `json:"createdAt"`
+	Runs        int            `json:"runs"`
 }
 
 // StepRun is one step's runtime state within an instance.
 type StepRun struct {
-	StepID     string  `json:"stepId"`
-	Name       string  `json:"name"`
-	Type       string  `json:"type"`
-	Status     string  `json:"status"`
-	StartedAt  string  `json:"startedAt,omitempty"`
-	DurationMs int     `json:"durationMs,omitempty"`
-	Output     string  `json:"output,omitempty"`
-	Note       string  `json:"note,omitempty"`
+	StepID     string `json:"stepId"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Status     string `json:"status"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	DurationMs int    `json:"durationMs,omitempty"`
+	Output     string `json:"output,omitempty"`
+	Note       string `json:"note,omitempty"`
 }
 
 // Instance is one execution of a workflow.
 type Instance struct {
-	ID           string            `json:"id"`
-	WorkflowID   string            `json:"workflowId"`
-	WorkflowName string            `json:"workflowName"`
-	Status       InstanceStatus    `json:"status"`
-	Entity       string            `json:"entity,omitempty"`
-	StartedAt    string            `json:"startedAt"`
-	EndedAt      string            `json:"endedAt,omitempty"`
-	Input        map[string]any    `json:"input,omitempty"`
-	AutoApprove  bool              `json:"autoApprove,omitempty"`
-	StepRuns     []StepRun         `json:"stepRuns"`
-	CurrentStep  int               `json:"currentStep"`
-	WaitingOn    string            `json:"waitingOn,omitempty"`
-	Error        string            `json:"error,omitempty"`
+	ID           string         `json:"id"`
+	WorkflowID   string         `json:"workflowId"`
+	WorkflowName string         `json:"workflowName"`
+	Status       InstanceStatus `json:"status"`
+	Entity       string         `json:"entity,omitempty"`
+	StartedAt    string         `json:"startedAt"`
+	EndedAt      string         `json:"endedAt,omitempty"`
+	Input        map[string]any `json:"input,omitempty"`
+	AutoApprove  bool           `json:"autoApprove,omitempty"`
+	StepRuns     []StepRun      `json:"stepRuns"`
+	CurrentStep  int            `json:"currentStep"`
+	WaitingOn    string         `json:"waitingOn,omitempty"`
+	Error        string         `json:"error,omitempty"`
 }
 
 // AuditEntry is one immutable audit record.

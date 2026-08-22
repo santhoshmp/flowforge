@@ -26,8 +26,8 @@ func TestSeed(t *testing.T) {
 		t.Fatalf("want 4 mdm entities, got %d", len(mdm))
 	}
 	ctrl, _ := s.ListControls()
-	if len(ctrl) != 12 {
-		t.Fatalf("want 12 controls, got %d", len(ctrl))
+	if len(ctrl) != 13 {
+		t.Fatalf("want 13 controls, got %d", len(ctrl))
 	}
 
 	// idempotent

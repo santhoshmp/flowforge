@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-08-01 |
-| **Runner** | Vitest (server); Playwright (UI, planned) |
-| **Run** | `cd server && npm test` · watch: `npm run test:watch` |
+| **Last updated** | 2026-08-22 |
+| **Runner** | Vitest (server, dsl); Go testing (server-go); CI: `.github/workflows/ci.yml` |
+| **Run** | `cd server && npm test` · `cd dsl && npm test` · `cd server-go && go test ./...` |
 | **Related** | [progress.md](./progress.md) · [traceability.md](./traceability.md) |
 
 ## 1. Principles
@@ -77,15 +77,44 @@
 | API-06 | `PUT /settings/ai` persists and **masks** the key (raw key never returned) | ✅ |
 | API-07 | `GET /workflows/:id/executions` lists only that workflow's runs | ✅ |
 
+### Extensibility (F-EXT) — P4 scenarios
+| ID | Scenario | Automated |
+|---|---|---|
+| EXT-01 | Executor registry dispatch: script/integration real, unhandled types simulate | ✅ (`server-go/internal/executor/registry_test.go`) |
+| EXT-02 | Custom executor registration + later-wins override | ✅ (`registry_test.go`) |
+| EXT-03 | Engine runs `connector` steps for real via the registry (deny-listed target fails the instance with the policy error) | ✅ (`server-go/internal/api/ext_test.go`) |
+| CONN-01 | Built-in manifests validate; bad manifests reject with actionable errors | ✅ (`server-go/internal/connectors/connectors_test.go`) |
+| CONN-02 | User drop-in dirs load and override built-ins by id | ✅ (`connectors_test.go`) |
+| CONN-03 | Params validation (required, string) + unresolved `${secret.*}` refs error | ✅ (`connectors_test.go`) |
+| CONN-04 | Approve gate: unknown connector / missing params → 400; valid → deployed | ✅ (`server-go/internal/api/ext_test.go`) |
+| CONN-05 | http connector executes egress-gated; wasm connector runs its module | ✅ (`connectors_test.go`) |
+| PLG-01 | WASM plugin publishes a JSON result through the `ff` ABI | ✅ (`server-go/internal/wasm/wasm_test.go`) |
+| PLG-02 | Memory cap enforced at instantiation | ✅ (`wasm_test.go`) |
+| PLG-03 | Execution timeout interrupts a spinning plugin | ✅ (`wasm_test.go`) |
+| PLG-04 | `ff.http_request` blocked by egress policy (no call); allowed reaches the server | ✅ (`wasm_test.go`) |
+| PLG-05 | Safe-mode blocks plugin HTTP | ✅ (`wasm_test.go`) |
+| TPL-01 | Gallery templates parse + validate against the frozen DSL; traversal rejected | ✅ (`server-go/internal/templates/templates_test.go`) |
+| TPL-02 | Instantiate creates a draft (trigger + steps, string params, uniqued ids) | ✅ (`templates_test.go`, `ext_test.go`) |
+
+### Artifact signing (F-DSL-03) — P3
+| ID | Scenario | Automated |
+|---|---|---|
+| SIGN-01 | keygen → sign → verify roundtrip via key files + `.sig` sibling | ✅ (`server-go/internal/signing/signing_test.go`) |
+| SIGN-02 | Tampered artifact fails verify; missing signature is an explicit error | ✅ (`signing_test.go`) |
+| SIGN-03 | Signature from a different key does not verify | ✅ (`signing_test.go`) |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|
 | SEC-01 | Auth flow: setup-mode lock → setup → 401 without token → 200 with token → /auth/me | ✅ (`server-go/internal/api/auth_test.go`) |
 | SEC-02 | Egress allow-list (default-deny, suffix match) + safe-mode disables scripts | ✅ (`server-go/internal/policy/policy_test.go`) |
 | SEC-03 | Script sandbox (no host fs/net) + input transform; HTTP egress allow/deny + safe-mode | ✅ (`server-go/internal/executor/executor_test.go`) |
-| SEC-04 | Fine-grained RBAC roles / SSO | ⬜ P5 |
-| DIST-01 | Builds for linux/darwin/win × amd64/arm64; checksums verify | P3 |
-| DIST-02 | Release artifacts are signed (cosign) with an SBOM | P3 |
+| SEC-04 | Secrets vault: encrypted at rest, names-only reads, wrong-key rejection | ✅ (`server-go/internal/secrets/secrets_test.go`) |
+| SEC-05 | Fine-grained RBAC roles / SSO | ⬜ P5 |
+| DIST-01 | Cross-compile matrix (linux/darwin/win × amd64/arm64) builds + checksums | ✅ local (`scripts/build.ps1` verified 2026-08-22) + release workflow |
+| DIST-02 | Release artifacts signed (cosign keyless) with an SBOM; image on ghcr signed | 🟡 pipeline (`release.yml`; runs on tag) |
+| DIST-03 | Docker image builds and serves `/api/v1/health` | 🟡 CI docker job (build + container smoke) |
+| DIST-04 | Helm chart lints and renders (default + ingress/no-persistence variants) | 🟡 CI helm job |
 | UX-01 | Playwright: describe → approve → run → approve-task → completed | P1/P4 |
 | CONF-01 | Go `spec` round-trips + rejects identically (mirror of DSL-02/03) | ✅ (`server-go/internal/spec`, Go 1.26.5) |
 | CONF-02 | Go engine mirrors ENG-01..05 (wait/approve/retry/cancel/auto-approve) | ✅ (`server-go/internal/engine`) |

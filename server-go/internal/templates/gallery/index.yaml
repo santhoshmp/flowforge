@@ -1,0 +1,15 @@
+# Template gallery index: file → category (names/descriptions come from the
+# flowforge/v1 documents themselves).
+templates:
+  - file: vendor-invoice-approval.flow.yaml
+    category: finance
+  - file: employee-onboarding.flow.yaml
+    category: hr
+  - file: purchase-order-approval.flow.yaml
+    category: finance
+  - file: expense-report-approval.flow.yaml
+    category: finance
+  - file: support-ticket-routing.flow.yaml
+    category: operations
+  - file: leave-request-approval.flow.yaml
+    category: hr

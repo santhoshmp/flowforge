@@ -462,6 +462,7 @@ func Controls() []models.ControlDef {
 		{"integration.http", "HTTP Call", "cyan", "Globe"},
 		{"script", "Script", "slate", "Code"},
 		{"wait", "Wait / SLA", "orange", "Timer"},
+		{"connector", "Connector", "teal", "Plug"},
 	}
 	out := make([]models.ControlDef, 0, len(meta))
 	for _, m := range meta {

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: flowforge
+description: |
+  FlowForge — self-hostable enterprise workflow automation. Describe a process
+  in natural language, approve the AI draft, run it centrally or as a portable
+  flowforge/v1 artifact. Single-binary control plane with embedded UI and
+  SQLite storage.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://flowforge.dev
+sources:
+  - https://github.com/flowforge/flowforge
+keywords:
+  - workflow
+  - automation
+  - bpm

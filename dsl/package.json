@@ -1,6 +1,6 @@
 {
   "name": "@flowforge/dsl",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The flowforge/v1 workflow spec: JSON Schema, parser, and canonical serializer. The portable contract shared by the editor, control plane, and runner.",
   "type": "module",
   "license": "Apache-2.0",

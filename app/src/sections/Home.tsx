@@ -1,6 +1,11 @@
-import { ArrowRight, MessageSquareText, ShieldCheck, Package, Activity, Database, Blocks, Scale } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowRight, MessageSquareText, ShieldCheck, Package, Activity, Database, Blocks, Scale, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store';
+import { api } from '@/lib/api';
+import type { TemplateInfo } from '@/lib/api';
+import type { Workflow } from '@/lib/types';
+import { toast } from 'sonner';
 
 const USP = [
   { icon: MessageSquareText, title: 'Say it, don’t draw it', body: 'Describe a process in plain language. AI drafts the workflow with per-step confidence scores and explicit assumptions for you to confirm.' },
@@ -11,8 +16,28 @@ const USP = [
   { icon: Blocks, title: 'Integrates with anything', body: 'HTTP, webhooks, Slack, email, databases, SAP, Salesforce — any OpenAPI spec becomes a typed step automatically.' },
 ];
 
-export default function Home({ onGoStudio }: { onGoStudio: () => void }) {
-  const { workflows, instances } = useStore();
+export default function Home({ onGoStudio, onEditWorkflow }: { onGoStudio: () => void; onEditWorkflow: (wf: Workflow) => void }) {
+  const { workflows, instances, instantiateTemplate } = useStore();
+  const [templates, setTemplates] = useState<TemplateInfo[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getTemplates().then(setTemplates).catch(() => setTemplates([]));
+  }, []);
+
+  const useTemplate = async (id: string) => {
+    setBusy(id);
+    try {
+      const wf = await instantiateTemplate(id);
+      toast.success(`Draft created from "${wf.name}" — review & approve to deploy`);
+      onEditWorkflow(wf);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="space-y-10">
       {/* Hero */}
@@ -44,6 +69,41 @@ export default function Home({ onGoStudio }: { onGoStudio: () => void }) {
           </div>
         </div>
       </div>
+
+      {/* Template gallery (P4.4): start from a proven flowforge/v1 pattern */}
+      {templates.length > 0 && (
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Layers className="h-4 w-4 text-violet-600" />
+            <span className="font-semibold text-sm">Start from a template</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">{templates.length} proven flowforge/v1 patterns</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Each template is a validated portable artifact — instantiate one, then edit it like any AI draft.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((t) => (
+              <div key={t.id} className="flex flex-col rounded-lg border bg-muted/30 p-4 hover:border-violet-200 transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium truncate">{t.name}</span>
+                  <span className="ml-auto shrink-0 rounded-full border bg-white px-2 py-0.5 text-[10px] text-muted-foreground">{t.category}</span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed line-clamp-2 min-h-[2.2em]">{t.description}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground">{t.steps} steps</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto h-7 text-[11px]"
+                    disabled={busy !== null}
+                    onClick={() => useTemplate(t.id)}
+                  >
+                    {busy === t.id ? 'Creating…' : 'Use template'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* USP grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

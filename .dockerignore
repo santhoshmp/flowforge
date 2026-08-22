@@ -1,0 +1,17 @@
+.git
+.github
+dist
+node_modules
+app/node_modules
+app/dist
+dsl/node_modules
+dsl/dist
+server/node_modules
+server/dist
+docs
+connectors
+*.db
+*.db-*
+*.secrets*
+flowforge.exe
+chart

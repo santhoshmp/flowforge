@@ -13,6 +13,14 @@ server-go/ui/dist/*
 *.exe
 server-go/flowforge
 
+# Release build output (scripts/build.*)
+dist/
+
+# Secrets vault + artifact signing keys (never commit)
+*.secrets
+*.secrets.key
+flowforge.key
+
 # SQLite databases
 *.db
 *.db-*

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Document** | Phased build plan for the downloadable product |
-| **Status** | Draft for review |
-| **Version** | 1.0 |
-| **Last updated** | 2026-08-01 |
+| **Status** | Active — P4 detailed |
+| **Version** | 1.1 |
+| **Last updated** | 2026-08-17 (P4 pulled ahead of P3; Phase 4 detailed) |
 | **Scope** | From the current prototype to a public, downloadable, self-hostable tool |
 | **Related** | [product-design.md](./product-design.md) · [architecture.md](./architecture.md) |
 
@@ -71,19 +71,37 @@ gantt
 - Safe-mode toggle (disable script/arbitrary-HTTP).
 - **Exit:** no user-supplied logic runs in the trusted process; safe-mode demonstrable.
 
-### Phase 3 — Distribution *(3–4 weeks)*
-- Cross-compile matrix (linux/darwin/win × amd64/arm64).
-- Docker image + `docker-compose.yml`; **Helm chart**.
-- Release artifacts: checksums, **cosign signatures**, **SBOM**.
-- Opt-in auto-update with signature verification.
-- **Exit:** one-line install on each platform; reproducible, signed release.
+### Phase 3 — Distribution *(3–4 weeks)* — *core shipped 2026-08-22; first tagged release pending*
+- Cross-compile matrix (linux/darwin/win × amd64/arm64). ✅ `scripts/build.{sh,ps1}` (all 6 verified locally)
+- Docker image + `docker-compose.yml`; **Helm chart**. ✅ `Dockerfile`, `docker-compose.yml`, `chart/flowforge` (CI builds/smokes the image, lints/renders the chart)
+- Release artifacts: checksums, **cosign signatures**, **SBOM**. ✅ `.github/workflows/release.yml` (syft SPDX + cosign keyless on blobs + multi-arch ghcr image); runbook in `docs/release.md`
+- Opt-in auto-update with signature verification. ⬜ deferred post-beta
+- Artifact signing for `.flow.yaml` (F-DSL-03, from the P4 plan). ✅ Ed25519 detached `.sig` via `flowforge keygen/sign/verify`
+- **Exit:** one-line install on each platform; reproducible, signed release. 🔨 pending the first `v*` tag
 
-### Phase 4 — Extensibility & ecosystem *(5–6 weeks)*
-- **Connector SDK** (typed contract, auth, dry-run mocks, contract tests).
-- **Plugin loading** for custom step types (WASM/plugin protocol).
-- **Templates gallery** (from the six demo workflows).
-- Stabilize public API + DSL with SemVer and a deprecation policy; docs site + 5-minute quickstart.
-- **Exit:** an external contributor can add and ship a connector end-to-end.
+### Phase 4 — Extensibility & ecosystem *(7–10 weeks)* — *detailed 2026-08-17*
+
+> **Sequencing note (2026-08-17):** P4 was pulled ahead of P3 (distribution) by explicit decision. P3 still gates the public beta and follows P4 core (4.0–4.4); workstream 4.5 may interleave with P3.
+
+**Decisions (D1–D4) — ADOPTED 2026-08-20 (rationale in `docs/decisions.md`):**
+
+- **D1 — Custom step types vs the frozen DSL.** Keep `flowforge/v1` frozen; add a single `type: "connector"` step whose `params.connector` names a registry entry, with connector-specific params validated by the connector's own JSON Schema. *(Alternative — open `connector.*` type enum/pattern — rejected: schema churn on a frozen contract.)*
+- **D2 — Plugin runtime.** WASM via `wazero` (pure-Go, air-gap safe) with a minimal JSON-in/JSON-out ABI; Starlark remains for inline `script` steps.
+- **D3 — Connector distribution format.** A directory + `connector.yaml` manifest for P4; signing/OCI packaging rides the P3 tooling.
+- **D4 — Compatibility policy.** SemVer + deprecation policy for `/api/v1` and the DSL; the runner supports N-1.
+
+**Workstreams:**
+
+- **4.0 Foundations *(1 wk)*** — CI (build + test + lint for Go/Node/DSL — closes the never-done P0 exit gap); migrate Node `server`/`app` onto `@flowforge/dsl`; fix doc drift (`docs/README.md` "skeleton" claim, Go version mismatch).
+- **4.1 Step-executor registry *(1–2 wk)*** — refactor the hardcoded dispatch in `server-go/internal/executor` into a `StepExecutor` interface + runtime registry; built-ins self-register at startup; align with the existing step-controls registry; unknown types fail validation with actionable errors.
+- **4.2 Connector SDK *(2–3 wk)*** — `connectors/` module: typed manifest (param schema; auth modes header/bearer/basic/oauth2-client-credentials; rate limits), dry-run mocks, a contract-test harness every connector must pass, and `flowforge connector validate|test` CLI. Ship 2–3 reference connectors (generic HTTP/JSON, Slack webhook, SMTP) as contributor exemplars. REST `/api/v1/connectors` + Admin UI section. The **secrets store** (P2 leftover: encrypted local file + env refs, never logged) lands here as the auth-material dependency.
+- **4.3 WASM plugin runtime *(2–3 wk)*** — `wazero` host with resource limits (memory-page cap + per-step timeout), host functions limited to `log` + egress-gated HTTP; plugin manifest, enable/disable, `flowforge plugin test` CLI, "write your first plugin" guide. Security tests must prove: no filesystem, no network outside the gate, limits enforced. *(Shipped 2026-08-20 — PLG-01..05; ABI in docs/decisions.md D2.)*
+- **4.4 Templates gallery *(1 wk)*** — extract the six seed workflows (currently inline in `server-go/internal/seed/seed.go`) into `templates/*.flow.yaml` + manifest (name, category, description); `/api/v1/templates`; "start from template" in Home/Studio; templates validated against the DSL schema in CI.
+- **4.5 Stabilization & docs *(1–2 wk)*** — publish OpenAPI for `/api/v1`; write the SemVer + deprecation policy (D4); docs site + 5-minute quickstart; contributor guides (connector, plugin).
+
+**New test scenario families** (to be added to [test-strategy.md](./test-strategy.md) as they land): **EXT** (registry dispatch), **CONN** (SDK contract), **PLG** (WASM sandbox + limits), **TPL** (template validity).
+
+- **Exit:** an external contributor can add and ship a connector end-to-end (manifest → contract tests → registry → canvas → run), and a WASM plugin executes a custom step type inside its limits.
 
 ### Phase 5 — Enterprise edition *(parallel, ~10 weeks)*
 - OIDC/SAML/LDAP SSO; fine-grained RBAC; teams.
@@ -132,13 +150,13 @@ Assumes ~5–6 people: 1 tech lead, 2–3 backend (Go), 1 frontend, part-time SR
 | Trademark/license ambiguity | Fork/brand risk | Apache core + registered trademark; clear AUP |
 | Heavy deps break air-gap promise | Loses key differentiator | No hard cloud/LLM dependency; bundle local model + snapshot |
 
-## 7. Immediate next steps (first 2–3 weeks)
+## 7. Immediate next steps (first 2–3 weeks) — P4 kick-off *(updated 2026-08-17)*
 
-1. Approve: **Apache-2.0 open-core**, **Go distributable**, **SQLite-default/Postgres-optional**, **trademark**.
-2. Restructure the repo; extract `flowforge/v1` JSON Schema + Go/TS parsers with round-trip tests.
-3. Stand up the Go binary skeleton (`serve` + embedded UI + SQLite) mirroring the Node API.
-4. Port the in-process durable engine to Go; build the **conformance suite** that both engines must pass.
-5. Draft the **security/threat model** and the **edition feature table**.
+1. Settle decisions **D1–D4** (Phase 4 section above).
+2. Stand up **CI** (Go + Node + DSL suites, lint, build) — closes the P0 exit gap.
+3. Migrate Node `server`/`app` onto `@flowforge/dsl`; fix doc drift.
+4. Refactor the Go executor into the **step-executor registry** (4.1) with dispatch contract tests.
+5. Draft the **connector manifest spec + SDK skeleton**; start the reference HTTP/JSON connector (4.2).
 
 ---
 
