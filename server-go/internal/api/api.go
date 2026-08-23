@@ -81,7 +81,9 @@ func nowISO() string { return time.Now().UTC().Format(time.RFC3339) }
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(v)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false) // keep &, <, > readable in API responses
+	_ = enc.Encode(v)
 }
 
 func writeErr(w http.ResponseWriter, code int, msg string) {

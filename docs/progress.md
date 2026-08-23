@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-08-22 |
-| **Current phase** | **P3 distribution — core shipped** (matrix, Docker, Helm, signing, SBOM pipeline, artifact signing). First tagged release pending |
+| **Last updated** | 2026-08-22 (2) |
+| **Current phase** | **P3 distribution — core shipped** + product-wide test suite (Go 94 tests incl. binary E2E). First tagged release pending |
 | **Test status** | 16 automated server tests, all green (`npm test`) |
 | **Related** | [test-strategy.md](./test-strategy.md) · [traceability.md](./traceability.md) · [build-plan.md](./build-plan.md) |
 
@@ -130,10 +130,21 @@
 | Go templates | `server-go/internal/templates/templates_test.go` | TPL-01/02 | ✅ |
 | Go ext API | `server-go/internal/api/ext_test.go` | CONN-04, TPL-02, EXT-03, SEC-04 | ✅ |
 | Go signing | `server-go/internal/signing/signing_test.go` | SIGN-01..03 | ✅ |
+| Go store CRUD | `server-go/internal/store/store_crud_test.go` | STORE-01..04 | ✅ |
+| Go auth internals | `server-go/internal/auth/auth_test.go` | SEC-01b..e | ✅ |
+| Go engine deep | `server-go/internal/engine/engine_exec_test.go` | ENG-06..10 | ✅ |
+| Go connector auth | `server-go/internal/connectors/auth_modes_test.go` | CONN-06/07 | ✅ |
+| Go wasm host | `server-go/internal/wasm/wasm_host_test.go` | PLG-06..10 | ✅ |
+| Go templates loop | `server-go/internal/templates/gallery_loop_test.go` | TPL-03 | ✅ |
+| Go API surface | `server-go/internal/api/api_surface_test.go` | API-08..14 | ✅ |
+| Go API lifecycle | `server-go/internal/api/lifecycle_test.go` | API-15/16 | ✅ |
+| **Binary E2E** | `server-go/e2e/e2e_test.go` | E2E-01..07 (CLI + live serve + restart durability) | ✅ |
 
 Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to [test-strategy.md](./test-strategy.md) and [traceability.md](./traceability.md).
 
 ## Changelog
+
+- **2026-08-22 (2)** — **Product-wide test suite** (~40 new scenarios; Go now 94 tests across 14 packages incl. `e2e`). New: STORE-01..04 (every collection roundtrip), SEC-01b..e (token tamper/expiry, Wrap gating matrix, bcrypt), ENG-06..10 (script/connector e2e, safe-mode halt, flaky-retry, cancel-waiting), CONN-06/07 (bearer/header/basic auth modes, secret-before-egress ordering, preview warnings), PLG-06..10 (log host fn, invalid module, missing exports, hostile alloc, exit codes), TPL-03 (loop every gallery entry), API-08..16 (full REST surface + template→approve→run→wait→approve→complete lifecycle + failure/auto-approve), **E2E-01..07** (built binary: CLI suite + live `serve` full loop with the real scheduler + restart durability + embedded UI). **The suite caught 3 real bugs, all fixed**: connector bodies were required (GET-style calls failed on `${params.body}`), connector 4xx/5xx responses didn't fail steps (retry was meaningless), and API JSON responses HTML-escaped `&<>` (audit text mangled). All suites green: Go 94, Node 16/16, DSL 14/14.
 
 - **2026-08-22** — **P3 distribution core shipped**. Artifact signing (F-DSL-03): Ed25519 detached signatures + `flowforge keygen/sign/verify` CLI (`internal/signing`, SIGN-01..03 green; tamper + wrong-key rejection verified live). Cross-compile matrix via `scripts/build.{sh,ps1}` — all 6 targets (linux/darwin/win × amd64/arm64) + SHA256SUMS verified locally. Docker: multi-stage `Dockerfile` (UI → CGO-free static binary → alpine non-root, /data volume) + `docker-compose.yml` (healthcheck, safety toggles). Helm chart `chart/flowforge` (single replica + SQLite PVC, Recreate, probes on the public `/api/v1/health`, ingress, safety values). Release pipeline `release.yml`: tag `v*` → matrix + syft SBOM + cosign keyless signatures (blobs + multi-arch ghcr image) + GitHub Release; CI gained docker (build + container smoke) and helm (lint + render) jobs. CLI version now ldflags-settable. Docs: `docs/release.md` runbook, README distribution section, stale F-DIST/F-SEC rows fixed. Go suite green (~55, incl. signing). Docker Desktop was down locally — image build verified via the CI job.
 

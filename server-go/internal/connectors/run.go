@@ -180,6 +180,40 @@ func (c *templateContext) resolveOrDefault(tpl, def string) string {
 	return out
 }
 
+// resolveOptional resolves a template where unresolved refs mean "absent"
+// (e.g. an HTTP body whose ${params.body} was not supplied): they become an
+// empty string instead of an error. Used only for inherently-optional fields.
+func (c *templateContext) resolveOptional(tpl string) string {
+	if strings.TrimSpace(tpl) == "" {
+		return ""
+	}
+	return refRe.ReplaceAllStringFunc(tpl, func(ref string) string {
+		m := refRe.FindStringSubmatch(ref)
+		section, path := m[1], m[2]
+		switch section {
+		case "params":
+			if v, ok := c.params[path]; ok {
+				return v
+			}
+		case "input":
+			if v, ok := lookupPath(c.input, path); ok {
+				return fmt.Sprintf("%v", v)
+			}
+		case "secret":
+			if vault, err := secrets.Default(); err == nil {
+				if v, ok := vault.Get(path); ok {
+					return v
+				}
+			}
+		case "env":
+			if v, ok := lookupEnv(path); ok {
+				return v
+			}
+		}
+		return ""
+	})
+}
+
 // ---- http executor ----------------------------------------------------------
 
 const connectorHTTPTimeout = 10 * time.Second
@@ -194,13 +228,8 @@ func runHTTPConnector(entry *Entry, c *templateContext, pol *policy.Policy) (str
 	if pol != nil && !pol.EgressAllowed(url) {
 		return "", fmt.Errorf("blocked by egress policy: %s", url)
 	}
-	var body string
-	if o.Body != "" {
-		body, err = c.resolve(o.Body)
-		if err != nil {
-			return "", err
-		}
-	}
+	// Body is optional: an unresolved/empty body template sends no body.
+	body := c.resolveOptional(o.Body)
 	req, err := http.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		return "", err
@@ -221,6 +250,9 @@ func runHTTPConnector(entry *Entry, c *templateContext, pol *policy.Policy) (str
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("connector %s: %s %s -> %d (upstream error)", entry.Manifest.ID, method, redactURL(url), resp.StatusCode)
+	}
 	n := countBody(resp)
 	return fmt.Sprintf("connector %s: %s %s -> %d (%d bytes)", entry.Manifest.ID, method, redactURL(url), resp.StatusCode, n), nil
 }

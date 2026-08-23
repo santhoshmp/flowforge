@@ -153,7 +153,7 @@ cd server && npm test
 cd dsl && npm test
 ```
 
-All suites are green: **Go** (~55 tests incl. EXT/CONN/PLG/TPL/SEC/SIGN), **Node** 16/16, **DSL** 14/14, plus CI (`.github/workflows/ci.yml` incl. Docker + Helm). See [`docs/test-strategy.md`](docs/test-strategy.md) for the scenario catalog (ENG, API, DSL, AI, MET, SEC, DATA, EXT, CONN, PLG, TPL, SIGN, DIST).
+All suites are green: **Go 94 tests across 14 packages** — unit (engine, API, auth, sandbox, policy, store, spec, connectors, wasm, secrets, templates, signing) + a **binary E2E suite** (`server-go/e2e`: CLI, live server full loop, restart durability) — **Node** 16/16, **DSL** 14/14, plus CI (`.github/workflows/ci.yml` incl. Docker + Helm). See [`docs/test-strategy.md`](docs/test-strategy.md) for the scenario catalog (ENG, API, DSL, AI, MET, SEC, STORE, EXT, CONN, PLG, TPL, SIGN, E2E, DIST).
 
 ---
 
