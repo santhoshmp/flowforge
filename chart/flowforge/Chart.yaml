@@ -7,10 +7,11 @@ description: |
   SQLite storage.
 type: application
 version: 0.1.0
+# Bump appVersion in lockstep with every release tag (see docs/release.md checklist).
 appVersion: "0.1.0"
-home: https://flowforge.dev
+home: https://github.com/santhoshmp/flowforge
 sources:
-  - https://github.com/flowforge/flowforge
+  - https://github.com/santhoshmp/flowforge
 keywords:
   - workflow
   - automation

@@ -31,7 +31,7 @@ On first launch the server is in **setup mode** — create an admin account via 
 docker compose up -d        # http://localhost:8080 (SQLite persists in a named volume)
 ```
 
-Or plain Docker: `docker run -p 8080:8080 -v flowforge-data:/data ghcr.io/flowforge/flowforge`
+Or plain Docker: `docker run -p 8080:8080 -v flowforge-data:/data ghcr.io/santhoshmp/flowforge`
 
 ### Option C — Kubernetes (Helm)
 

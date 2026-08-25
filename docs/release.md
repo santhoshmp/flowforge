@@ -4,7 +4,7 @@
 |---|---|
 | **Trigger** | `git tag vX.Y.Z && git push origin vX.Y.Z` |
 | **Pipeline** | `.github/workflows/release.yml` |
-| **Outputs** | 6 binary archives + `SHA256SUMS` + SPDX SBOM + cosign signatures + `ghcr.io/flowforge/flowforge` image + GitHub Release |
+| **Outputs** | 6 binary archives + `SHA256SUMS` + SPDX SBOM + cosign signatures + `ghcr.io/santhoshmp/flowforge` image + GitHub Release |
 
 ## 1. What the pipeline does
 
@@ -27,12 +27,12 @@ sha256sum -c SHA256SUMS
 cosign verify-blob \
   --certificate flowforge-vX.Y.Z-linux-amd64.tar.gz.pem \
   --signature     flowforge-vX.Y.Z-linux-amd64.tar.gz.sig \
-  --certificate-identity-regexp "https://github.com/flowforge/" \
+  --certificate-identity-regexp "https://github.com/santhoshmp/" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   flowforge-vX.Y.Z-linux-amd64.tar.gz
 
 # container image
-cosign verify ghcr.io/flowforge/flowforge:vX.Y.Z
+cosign verify ghcr.io/santhoshmp/flowforge:vX.Y.Z
 ```
 
 ## 3. Artifact signing (`.flow.yaml`, F-DSL-03)
@@ -76,8 +76,24 @@ Single replica by design (SQLite on a RWO PVC, `Recreate` strategy) — see
 
 ## Checklist before tagging
 
-- [ ] All CI jobs green on the release commit.
+- [ ] All CI jobs green on the release commit (incl. `docker` build + smoke
+      and `helm` lint/render — verify in the GitHub Actions tab).
+- [ ] **RC tag first**: tag `vX.Y.Z-rc1` and confirm the release pipeline
+      end-to-end (matrix, SBOM, cosign blobs, ghcr image + digest signing,
+      GitHub Release); delete the RC release/tag after verification.
+- [ ] `chart/flowforge/Chart.yaml` `appVersion` bumped to `vX.Y.Z` (image tag
+      defaults to it).
 - [ ] `docs/progress.md` changelog updated; `CHANGELOG`-style notes drafted
       (the Release uses `generate_release_notes`).
 - [ ] `server-go/ui/dist` in the repo is current (CI rebuilds it anyway).
 - [ ] Post-tag: attach any out-of-band notes; announce checksums.
+
+## Known limitations (v0.1.0)
+
+- `go install github.com/santhoshmp/flowforge/...@latest` does not work: the
+  Go module path is `github.com/flowforge/flowforge`. Building from source
+  (`git clone` + `go build`) and the binary/Docker/Helm distributions are the
+  supported paths. Renaming the module to match the repo is planned before a
+  1.0 (`go.mod` + import rewrite).
+- The image is published to `ghcr.io/santhoshmp/flowforge` (this repository's
+  GitHub Packages namespace).

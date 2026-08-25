@@ -54,16 +54,19 @@ export function toYAML(wf: Workflow): string {
 }
 
 export function runnerReadme(wf: Workflow): string {
-  return `# ${wf.name} — standalone runner package
+  return `# ${wf.name} — portable flowforge/v1 artifact
 
-This package executes without any connection to the FlowForge control plane.
+This file is the whole workflow — a human-readable YAML contract you own.
+
+Validate and preview it anywhere with the FlowForge CLI:
 
 \`\`\`bash
-docker run -v $(pwd):/flows flowforge/runner:1.0 run /flows/${slug(wf.name)}.flow.yaml
+flowforge validate ${slug(wf.name)}.flow.yaml
+flowforge run ${slug(wf.name)}.flow.yaml        # prints the execution plan
 \`\`\`
 
-- Signed manifest: version ${wf.version}, approved by ${wf.approvedBy ?? 'pending'}
-- MDM lookups resolve against the bundled snapshot (./mdm-snapshot.json)
-- When connectivity returns, the runner can phone home execution state (opt-in: --report-to <url>)
+- Manifest: version ${wf.version}, approved by ${wf.approvedBy ?? 'pending'}
+- Runs on any FlowForge control plane: \`flowforge serve\` (single binary, embedded UI)
+- Provenance: sign/verify with \`flowforge sign\` / \`flowforge verify\` (Ed25519 detached signatures)
 `;
 }
