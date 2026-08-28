@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image (no push)
         run: docker build -t flowforge:ci .
-      - name: Smoke: container serves /api/v1/health
+      - name: "Smoke: container serves /api/v1/health"
         run: |
           docker run -d --name ff-ci -p 18080:8080 flowforge:ci
           for i in $(seq 1 20); do
