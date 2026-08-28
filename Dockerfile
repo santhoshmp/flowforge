@@ -32,12 +32,16 @@ RUN cd server-go && \
 
 # ---- 3. Runtime ---------------------------------------------------------------
 FROM alpine:3.20
-RUN addgroup -S flowforge && adduser -S flowforge -G flowforge
+# Create /data with the right ownership BEFORE switching users: Docker
+# initializes volumes from the image directory's ownership, and the non-root
+# user must be able to create the SQLite database there.
+RUN addgroup -S flowforge && adduser -S flowforge -G flowforge \
+ && mkdir -p /data && chown flowforge:flowforge /data
 COPY --from=go /out/flowforge /usr/local/bin/flowforge
 ENV PORT=8080 \
     DB_PATH=/data/flowforge.db
-WORKDIR /data
 USER flowforge
+WORKDIR /data
 EXPOSE 8080
 VOLUME ["/data"]
 ENTRYPOINT ["flowforge"]
