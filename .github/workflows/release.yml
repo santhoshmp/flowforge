@@ -67,14 +67,15 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            dist/flowforge-*
-            dist/SHA256SUMS*
-            dist/*.sig
-            dist/*.pem
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag \
+            --repo "$GITHUB_REPOSITORY" \
+            dist/flowforge-* dist/SHA256SUMS*
 
   image:
     name: Container image (ghcr)
