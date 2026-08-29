@@ -8,7 +8,9 @@ description: |
 type: application
 version: 0.1.0
 # Bump appVersion in lockstep with every release tag (see docs/release.md checklist).
-appVersion: "0.1.0"
+# Note: includes the "v" prefix — it is the default image tag and must match the
+# tags actually published to ghcr (vX.Y.Z).
+appVersion: "v0.1.0"
 home: https://github.com/santhoshmp/flowforge
 sources:
   - https://github.com/santhoshmp/flowforge
