@@ -1,14 +1,17 @@
 # syntax=docker/dockerfile:1
 
 # FlowForge single-binary image — multi-stage:
-#   1. ui  — build the Studio UI (React/Vite) and the @flowforge/dsl package
-#            it consumes via file:../dsl
-#   2. go  — static build (CGO_ENABLED=0; sqlite/wazero/starlark are pure Go)
-#            with the UI embedded via embed.FS
-#   3. run — minimal alpine with a non-root user and a /data volume for SQLite
+#   1. ui  — Studio UI (React/Vite) + @flowforge/dsl, ALWAYS built on the
+#            native BUILD platform (the output is platform-independent)
+#   2. go  — static per-target cross-compile (CGO_ENABLED=0; sqlite/wazero/
+#            starlark are pure Go), also native — no QEMU emulation anywhere
+#   3. run — minimal alpine, non-root user, /data volume for SQLite
+#
+# Multi-arch (linux/amd64 + linux/arm64) therefore only varies the final
+# base image — the whole build stays fast instead of emulating node/go.
 
 # ---- 1. UI -------------------------------------------------------------------
-FROM node:22-alpine AS ui
+FROM --platform=$BUILDPLATFORM node:22-alpine AS ui
 WORKDIR /src
 COPY dsl/package.json dsl/package-lock.json ./dsl/
 RUN npm --prefix dsl ci --no-fund --no-audit
@@ -19,16 +22,20 @@ RUN npm --prefix app ci --no-fund --no-audit
 COPY app ./app
 RUN npm --prefix app run build
 
-# ---- 2. Go binary -------------------------------------------------------------
-FROM golang:1.26-alpine AS go
+# ---- 2. Go binary (cross-compiled per target platform) ------------------------
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS go
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
+ENV CGO_ENABLED=0
 COPY server-go/go.mod server-go/go.sum ./server-go/
 RUN cd server-go && go mod download
 COPY server-go ./server-go
-# Replace the placeholder embed with the built UI.
-COPY --from=ui /src/app/dist ./server-go/ui/dist
-RUN cd server-go && \
-    CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /out/flowforge ./cmd/flowforge
+COPY --from=ui /src/app/dist /ui-dist
+RUN cd server-go \
+ && rm -rf ui/dist && mkdir ui/dist && cp -r /ui-dist/. ui/dist/ \
+ && GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags "-s -w" -o /out/flowforge ./cmd/flowforge
 
 # ---- 3. Runtime ---------------------------------------------------------------
 FROM alpine:3.20
