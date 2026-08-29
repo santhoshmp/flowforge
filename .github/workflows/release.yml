@@ -61,21 +61,56 @@ jobs:
         uses: sigstore/cosign-installer@v3
       - name: Sign all release files
         run: |
+          set -euo pipefail
           cd dist
           for f in flowforge-* SHA256SUMS; do
+            case "$f" in *.sig|*.pem) continue ;; esac   # never sign signatures
             cosign sign-blob --yes --output-signature "$f.sig" --output-certificate "$f.pem" "$f"
+            if [ ! -s "$f.sig" ] || [ ! -s "$f.pem" ]; then
+              echo "signing produced no output for $f" >&2
+              exit 1
+            fi
           done
 
-      - name: Create GitHub Release
+      # ---- completeness gate: every expected artifact must exist ---------------
+      - name: Verify expected artifacts exist
+        run: |
+          set -euo pipefail
+          cd dist
+          missing=0
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              ext=tar.gz; [ "$os" = windows ] && ext=zip
+              for suffix in "" ".sig" ".pem"; do
+                f="flowforge-${GITHUB_REF_NAME}-${os}-${arch}.${ext}${suffix}"
+                if [ ! -s "$f" ]; then echo "MISSING $f"; missing=1; fi
+              done
+            done
+          done
+          for f in flowforge-sbom.spdx.json flowforge-sbom.spdx.json.sig flowforge-sbom.spdx.json.pem \
+                   SHA256SUMS SHA256SUMS.sig SHA256SUMS.pem; do
+            if [ ! -s "$f" ]; then echo "MISSING $f"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            --verify-tag \
-            --repo "$GITHUB_REPOSITORY" \
-            dist/flowforge-* dist/SHA256SUMS*
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "release exists - refreshing all assets (--clobber)"
+            gh release upload "$GITHUB_REF_NAME" \
+              --clobber --repo "$GITHUB_REPOSITORY" \
+              dist/flowforge-* dist/SHA256SUMS*
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --verify-tag \
+              --repo "$GITHUB_REPOSITORY" \
+              dist/flowforge-* dist/SHA256SUMS*
+          fi
 
   image:
     name: Container image (ghcr)
