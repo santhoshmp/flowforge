@@ -1,0 +1,57 @@
+# flowforge/v1 — Meridian Components demo pack
+# Finance: vendor invoices over EUR 10K need Controller sign-off; CFO escalation on SLA breach.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: vendor-invoice-approval
+  version: 3
+  createdBy: Meridian demo pack
+  approvedBy: Priya Raman (CFO)
+  authoredWith: meridian-finance
+spec:
+  description: Extract invoice lines, validate the vendor against master data, route to the Controller above EUR 10K, post to ERP.
+  trigger:
+    event: vendor_invoice.created
+    source: email-inbox
+  steps:
+    - id: extract_line_items
+      type: ai.extract
+      name: Extract line items
+      params:
+        fields: line_items, vendor_id, total, currency
+        model: auto
+    - id: validate_vendor
+      type: mdm.validate
+      name: Validate vendor against master
+      params:
+        entity: vendors
+        match_on: vendor_id, tax_id
+        on_mismatch: route_to_steward
+    - id: amount_check
+      type: condition
+      name: Invoice over EUR 10,000?
+      params:
+        expression: total > 10000
+        on_false: auto_approve
+    - id: controller_approval
+      type: human.approval
+      name: Controller approval
+      params:
+        approver: Aisha Khan (Controller)
+        resolve_via: hr_hierarchy
+        sla_hours: "48"
+      on_sla_breach: escalate
+    - id: cfo_escalation
+      type: human.approval
+      name: Escalate to CFO
+      params:
+        approver: Priya Raman (CFO)
+        after_hours: "48"
+        condition: previous_step.sla_breached
+    - id: post_to_erp
+      type: integration.post
+      name: Post to ERP
+      params:
+        system: ERP
+        endpoint: erp.meridian.internal/invoices
+        mapping: auto

@@ -148,6 +148,15 @@
 | SIGN-02 | Tampered artifact fails verify; missing signature is an explicit error | ✅ (`signing_test.go`) |
 | SIGN-03 | Signature from a different key does not verify | ✅ (`signing_test.go`) |
 
+### Demo pack (F-DEMO) — `server-go/internal/demopack`
+| ID | Scenario | Automated |
+|---|---|---|
+| DEM-01 | All six demo artifacts parse + validate against the frozen DSL | ✅ (`demopack_test.go`) |
+| DEM-02 | Load deploys 6 workflows with named org approvers + run history | ✅ |
+| DEM-03 | Dashboards alive: completed/waiting/failed mix, 14-day window, resolvable live task | ✅ |
+| DEM-04 | MDM governance stories present (duplicate vendor, tax mismatch, pending hire) | ✅ |
+| DEM-05 | Load is idempotent (re-runs neither duplicate rows nor break audit) | ✅ |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|

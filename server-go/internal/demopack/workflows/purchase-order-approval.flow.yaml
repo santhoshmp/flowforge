@@ -1,0 +1,47 @@
+# flowforge/v1 — Meridian Components demo pack
+# Procurement: purchase orders over EUR 5K need Procurement Director sign-off before SAP posting.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: purchase-order-approval
+  version: 2
+  createdBy: Meridian demo pack
+  approvedBy: Priya Raman (CFO)
+  authoredWith: meridian-procurement
+spec:
+  description: Validate the supplier, require Procurement Director approval above EUR 5K, notify the requester, post to SAP.
+  trigger:
+    event: purchase_order.created
+    source: procurement-portal
+  steps:
+    - id: validate_supplier
+      type: mdm.validate
+      name: Validate supplier
+      params:
+        entity: vendors
+        match_on: vendor_id
+    - id: amount_check
+      type: condition
+      name: Order over EUR 5,000?
+      params:
+        expression: total > 5000
+        on_false: auto_approve
+    - id: director_approval
+      type: human.approval
+      name: Procurement Director approval
+      params:
+        approver: Marcus Webb (Procurement Director)
+        sla_hours: "24"
+      on_sla_breach: escalate
+    - id: notify_requester
+      type: notify
+      name: Notify requester
+      params:
+        channel: email
+        template: po-approved
+    - id: post_to_sap
+      type: integration.post
+      name: Post to SAP
+      params:
+        system: SAP
+        endpoint: sap.meridian.internal/orders

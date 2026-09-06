@@ -1,0 +1,42 @@
+# flowforge/v1 — Meridian Components demo pack
+# Data governance: supplier master-data changes go through stewardship before the golden record updates.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: supplier-master-change
+  version: 1
+  createdBy: Meridian demo pack
+  approvedBy: Priya Raman (CFO)
+  authoredWith: meridian-mdm
+spec:
+  description: Validate a supplier record change against master data, require Data Steward sign-off, publish the update to the MDM hub.
+  trigger:
+    event: vendor_record.changed
+    source: procurement-portal
+  steps:
+    - id: validate_change
+      type: mdm.validate
+      name: Validate supplier change
+      params:
+        entity: vendors
+        match_on: vendor_id, tax_id
+        on_mismatch: route_to_steward
+    - id: steward_approval
+      type: human.approval
+      name: Data Steward approval
+      params:
+        approver: Tomas Herrera (Data Steward)
+        sla_hours: "72"
+      on_sla_breach: escalate
+    - id: notify_procurement
+      type: notify
+      name: Notify procurement
+      params:
+        channel: email
+        template: vendor-record-updated
+    - id: post_mdm_hub
+      type: integration.post
+      name: Publish to MDM hub
+      params:
+        system: MDM
+        endpoint: mdm.meridian.internal/vendors

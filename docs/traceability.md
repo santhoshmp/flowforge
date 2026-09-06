@@ -54,6 +54,7 @@
 | F-EXT-06 | CI: dsl (typecheck/test/build) → server (typecheck/test), app (build), go (vet/test/build + template conformance) | `.github/workflows/ci.yml` | (gate) | ✅ |
 | F-EXT-07 | OpenAPI contract + versioning policy + quickstart | `docs/{openapi.yaml,versioning.md,quickstart.md}` | — | ✅ |
 | F-EXT-08 | Contributor docs for connectors/plugins | `connectors/README.md`, `docs/decisions.md` | — | ✅ |
+| F-DEMO-01 | Demo pack: Meridian Components org (MDM + governance stories), 6 workflows, 14-day run history, `flowforge demo` CLI, presenter runbook | `server-go/internal/demopack` (+`demopack_test.go`), `demo-pack/`, `docs/demo-runbook.md` | DEM-01..05 | ✅ |
 | F-FACT-01 | Testable server factory + engine hook | `src/app.ts` → `createServer`; `engine.ts` → `tickAll` | (enables all API/ENG tests) | ✅ |
 
 ## Frontend — `app/`

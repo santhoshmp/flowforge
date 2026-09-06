@@ -1,153 +1,105 @@
 # FlowForge — Demo Runbook
 
-How to run and demo the **working prototype**. This is a real, backend-backed app (Node/TS + SQLite) that showcases the key usability features end-to-end. SSO/RBAC are intentionally deferred — there is a single demo user.
+| | |
+|---|---|
+| **Demo org** | Meridian Components ([demo-pack/organization.md](../demo-pack/organization.md)) |
+| **Prep time** | ~2 minutes |
+| **Paths** | 5-minute teaser · 20-minute full demo |
 
-> **Two processes:** `server/` (control-plane API on :8080) and `app/` (Studio UI on :3000). Run both.
-
----
-
-## 1. Prerequisites
-
-- **Node.js 20+** (built and tested on Node 22).
-- **npm 10+**.
-- (Optional) An **OpenAI-compatible API key** for genuine AI authoring. Without one, authoring uses a deterministic local generator so the demo always works.
-
-## 2. First-time setup
+## Setup (once)
 
 ```bash
-# 1. Control plane
-cd server
-cp .env.example .env          # then edit .env (optional: set OPENAI_API_KEY)
-npm install
-npm run dev                   # http://localhost:8080
-
-# 2. Studio UI (new terminal)
-cd app
-npm install
-npm run dev                   # http://localhost:3000
+flowforge demo      # loads Meridian Components: 6 workflows, 24 runs, master data
+flowforge serve     # http://localhost:8080
 ```
 
-Open **http://localhost:3000**. The UI loads demo workflows, executions, MDM, controls, and audit from the API.
+In the browser: create the admin account (present it as *Elena Fischer,
+Plant Manager*), log in. Optional: Admin → AI authoring model → point at
+Ollama/OpenAI for live AI drafting (Act 2 is stronger with a real model;
+the fallback works offline).
 
-### Enabling real AI authoring (optional)
+Reset any time: stop the server, delete `flowforge.db`, `flowforge demo`,
+`flowforge serve`.
 
-You can configure the model **from the UI**: open **Admin → “AI authoring model”** and choose a provider. Options include OpenAI, OpenRouter (Anthropic/Google/Meta), Groq, Together AI, **Ollama (Local)**, **LM Studio (Local)**, or any custom OpenAI-compatible endpoint. Enter the API key, base URL, and model, click **Test connection**, then **Save**. Changes take effect immediately — no restart. Keys are stored on the server and sent only to the chosen endpoint.
+## The 5-minute teaser
 
-Equivalently, seed it via `server/.env` (read once on first start; the UI setting takes precedence once saved):
+1. **Overview** — "Six workflows from one fictional company, two weeks of
+   real history." Point at the template gallery.
+2. **Dashboard** — 61 runs, 82.9% success, the failed-then-retried dip.
+3. **Human tasks** — Admin console: six departments each waiting on a
+   *named person*. Approve Aisha Khan's stuck invoice (INV-2026-0887);
+   Executions shows it complete seconds later.
+4. **Portability** — Workflows → export the invoice flow → show the YAML →
+   `flowforge sign` / `flowforge verify` in a terminal.
 
-```env
-OPENAI_API_KEY=sk-...                         # required for real LLM drafts
-OPENAI_BASE_URL=https://api.openai.com/v1     # any OpenAI-compatible endpoint
-OPENAI_MODEL=gpt-4o-mini                      # gpt-4o, gpt-4.1, etc.
-```
+## The 20-minute demo
 
-Any OpenAI-compatible endpoint works, including **Ollama** (`http://localhost:11434/v1`, model `llama3.1`) and **LM Studio** (`http://localhost:1234/v1`). If no key is set for a cloud provider or the endpoint is unreachable, the server automatically falls back to the deterministic generator.
+### Act 1 — The pain (1 min)
+Open `demo-pack/organization.md`: approvals in inboxes, no audit trail,
+"where is invoice 0887?" Then the Dashboard: *this is the same company,
+two weeks later.*
 
-> The UI shows which engine produced a draft: `flowforge-author (deterministic · no API key set)` vs. the configured model name (see the Studio header and `/api/v1/health`).
+### Act 2 — Describe it (4 min)
+Studio → prompt:
+*"When a vendor invoice over 10K arrives, validate the vendor against
+master data, route to Aisha Khan for approval, escalate to Priya Raman
+if she doesn't act in 48 hours, then post to ERP."*
+Show the draft: typed steps, confidence scores, assumptions. Edit a step
+live (rename, adjust threshold) — point out every change is visible.
 
-## 3. Where the data lives
+### Act 3 — The approval gate (3 min)
+Try to run the draft → refused. Approve → deploy. Show the audit entry:
+*AI proposed, Priya Raman disposed.* Message: **nothing runs unaudited.**
 
-- **`server/flowforge.db`** — SQLite file. Delete it to re-seed fresh demo data on next start. All execution state is durable here; executions resume after a server restart.
+### Act 4 — Run it live (4 min)
+Run the deployed invoice flow with
+[`invoice-above-threshold.json`](../demo-pack/inputs/invoice-above-threshold.json)
+(EUR 31,200): Executions → steps stream pending → running → **waiting on
+Aisha Khan**. Approve the task → completes with the ERP step.
+Then [`invoice-below-threshold.json`](../demo-pack/inputs/invoice-below-threshold.json)
+(EUR 4,800): the condition step **auto-approves** — no human in the loop
+for small invoices. That's policy-driven routing.
 
----
+### Act 5 — Failure, observably (3 min)
+Show INV-2026-0834 in history: failed on `blocked by egress policy`,
+retried, completed. Click the failed run: the step-level error, the
+retry that resumed *only* the failed step. Message: **failures are
+first-class, and recovery doesn't replay the world.**
 
-## 4. Demo script (5–7 minutes)
+### Act 6 — Master data governance (3 min)
+Master Data → suppliers: two records *pending stewardship* — a suspected
+duplicate (V-1012) and a tax-id mismatch (V-1006). Run the
+supplier-master-change flow with
+[`supplier-master-change.json`](../demo-pack/inputs/supplier-master-change.json):
+Tomas Herrera gets the stewardship task before anything touches the
+golden record.
 
-**Pillar 1 — Conversational authoring + trust layer**
-
-1. Open the **Studio**. Paste (or click *Sample 1*):
-   > "When a vendor invoice over $10K arrives, extract line items, validate against the vendor master, route to the cost-center manager for approval, escalate to Finance VP after 48 hours, then post to the ERP."
-2. Click **Generate workflow**. Watch the AI phases, then the draft appears on the canvas with **per-step confidence** and **highlighted assumptions**.
-3. Double-click a step (or click the pencil) to edit it; click **JSON** to view/edit the raw definition.
-4. Point out the assumptions checklist at the bottom — *nothing is trusted until a human confirms*.
-
-**Pillar 2 — Human approval as a trust primitive**
-
-5. Click **Approve & deploy**. Note the toast: "Nothing executed until a human approved this AI draft." This approval is on the audit trail.
-
-**Pillar 3 — API-first + step-level observability**
-
-6. Click **Run now** → lands on **Executions**. Watch each step go pending → running → succeeded, with outputs and durations, **live**.
-7. When the **Human Approval** step turns *waiting*, click **Approve as … (simulate)** → execution resumes.
-8. Select the seeded **failed** execution (`run-9b1c`, ERP timeout). Click **Retry from failed step** → it resumes *only* the failed step and completes.
-
-**Pillar 3b — Tracking dashboard**
-
-8b. Open **Dashboard**. Show fleet KPIs (total runs, success rate, running/waiting/failed, avg duration), the **14-day execution trend** and **outcome mix** charts, and the **workflow tracker** table (per-workflow runs, success bar, avg duration, last run).
-8c. Click a workflow to drill in: see its **recent executions** with inline **Approve / Retry / Cancel** actions, a **step-performance** chart (avg duration per step), and **Run with input** — set `total` below the threshold (e.g. 5000) to watch the condition auto-approve the manager step, or above it (24000) to route to a human approval.
-
-**Pillar 4 — Portability**
-
-9. Go to **Workflows** → **Download .flow.yaml**. Open it — this single `flowforge/v1` file is the portable artifact.
-
-**Pillar 5 — Master data**
-
-10. Open **Master Data**. Show vendors/customers/products/employees golden records; add a record (it enters as *pending stewardship*).
-
-**Pillar 6 — Governance**
-
-11. Open **Admin**: fleet stats, the human task queue, the live **audit trail** (AI draft, approval, runs, MDM), and the **step-controls** registry — add a custom control (e.g. `custom.send_sms`) and see it appear in the Studio palette.
-12. In the same Admin view, show the **“AI authoring model”** card: switch providers (OpenAI / OpenRouter / Groq / Together / **Ollama (Local)** / **LM Studio (Local)** / Custom), paste a key, **Test connection**, and **Save** — authoring in Studio immediately uses the chosen model.
-
-## 5. API quick reference (the UI is just a client)
+### Act 7 — Portability + provenance (2 min)
+Workflows → export `vendor-invoice-approval` → open the YAML (a
+`flowforge/v1` artifact — readable, versioned). Terminal:
 
 ```bash
-# Health / config
-curl http://localhost:8080/api/v1/health
-
-# One-shot load of everything the UI needs
-curl http://localhost:8080/api/v1/bootstrap
-
-# Author a draft from a prompt
-curl -X POST http://localhost:8080/api/v1/ai/draft \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"When an invoice over $10K arrives, validate the vendor, route to the manager, then post to ERP."}'
-
-# Create + approve + run (run accepts optional entity + input used by conditions)
-curl -X POST http://localhost:8080/api/v1/workflows -H "Content-Type: application/json" -d '{ "name":"Demo","description":"d","prompt":"p","steps":[...] }'
-curl -X POST http://localhost:8080/api/v1/workflows/<id>/approve
-curl -X POST http://localhost:8080/api/v1/workflows/<id>/executions -H "Content-Type: application/json" -d '{"entity":"INV-1234 · Acme","input":{"total":24000}}'
-
-# Tracking dashboard: fleet KPIs, 14-day series, outcome mix, per-workflow stats
-curl http://localhost:8080/api/v1/metrics
-
-# All executions of one workflow (per-workflow tracking)
-curl http://localhost:8080/api/v1/workflows/<id>/executions
-
-# Watch it run, then resolve the human task / retry the failed one / cancel
-curl http://localhost:8080/api/v1/executions/<id>/steps
-curl -X POST http://localhost:8080/api/v1/executions/<id>/approve
-curl -X POST http://localhost:8080/api/v1/executions/<id>/retry
-curl -X POST http://localhost:8080/api/v1/executions/<id>/cancel
+flowforge keygen .
+flowforge sign vendor-invoice-approval.flow.yaml
+flowforge verify vendor-invoice-approval.flow.yaml
 ```
 
-Full surface: `ai/draft`, `workflows` (CRUD + `/approve` + `/executions` [GET list + POST run with input]), `executions` (`/steps`, `/approve`, `/retry`, `/cancel`), `metrics`, `mdm`, `controls` (CRUD + `/toggle`), `settings/ai` (GET/PUT + `/test`), `audit`, `bootstrap`, `health`.
+"It's our workflow, in a file we own, with a signature anyone can verify
+offline."
 
-## 6. Prototype architecture
+### Close (1 min)
+"One binary. SQLite inside. Connectors and WASM plugins when you need
+more. Docker or Helm when you're ready." → README install section.
 
-```mermaid
-flowchart LR
-    UI["Studio UI (app/)<br/>React + Vite<br/>API client + 1.2s poll"] -->|REST :8080| API
-    subgraph server["Control plane (server/)"]
-        API["Fastify REST<br/>/api/v1/*"]
-        ENG["Engine + scheduler<br/>850ms tick · durable"]
-        AI["AI author<br/>OpenAI-compatible<br/>+ deterministic fallback"]
-        DB[("SQLite<br/>flowforge.db")]
-        API --> ENG & AI & DB
-        ENG --> DB
-    end
-```
+## Cheat sheet
 
-- **Durable by design:** each step transition is written to SQLite before the tick ends; restart the server mid-run and execution resumes where it stopped.
-- **Single source of truth:** the UI calls the same REST endpoints an external integrator would.
-
-## 7. Known limitations (prototype)
-
-- No authentication / RBAC / multi-tenancy (single demo user).
-- Engine is an in-process scheduler, not Temporal (no cross-process HA/replay at scale).
-- Timestamps are display strings ("just now"), not real ISO times.
-- Audit is append-only but not hash-chained/signed.
-- Test Lab runs a client-side sandbox simulation (not the server engine in dry-run mode, yet).
-- No portable Go runner or artifact signing yet.
-
-See [`design-and-production-plan.md`](./design-and-production-plan.md) for the path from this prototype to production.
+| Moment | Where | What to show |
+|---|---|---|
+| Living company | Dashboard | 14-day series, 6 waiting tasks, 82.9% success |
+| Governance | Admin → Human task queue | Named approvers, resolve Aisha's invoice |
+| Conditions | Executions | Above vs below EUR 10K, auto-approve |
+| Recovery | Executions → INV-2026-0834 | Failed step → retry → completed |
+| MDM | Master Data → Suppliers | Pending-stewardship duplicate + mismatch |
+| Portability | Workflows → Export | YAML artifact + sign/verify |
+| Extensibility | Admin → Connectors | http-json, slack-webhook, smtp + drop-in dirs |
+| Templates | Overview | Start-from-template gallery |

@@ -1,0 +1,41 @@
+# flowforge/v1 — Meridian Components demo pack
+# HR: new-hire onboarding with HR partner approval, IT provisioning, Workday posting.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: employee-onboarding
+  version: 4
+  createdBy: Meridian demo pack
+  approvedBy: Sofia Lindqvist (HR Business Partner)
+  authoredWith: meridian-hr
+spec:
+  description: Validate the employee record, require HR partner approval, provision IT, post the hire to Workday.
+  trigger:
+    event: onboarding.submitted
+    source: workday
+  steps:
+    - id: validate_employee
+      type: mdm.validate
+      name: Validate employee
+      params:
+        entity: employees
+        match_on: emp_id, email
+    - id: hr_approval
+      type: human.approval
+      name: HR partner approval
+      params:
+        approver: Sofia Lindqvist (HR Business Partner)
+        sla_hours: "24"
+      on_sla_breach: escalate
+    - id: notify_it
+      type: notify
+      name: Notify IT provisioning
+      params:
+        channel: slack
+        recipients: "#it-provisioning"
+    - id: post_workday
+      type: integration.post
+      name: Post hire to Workday
+      params:
+        system: Workday
+        endpoint: workday.meridian.internal/hires

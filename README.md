@@ -112,6 +112,7 @@ workflows so the whole loop works offline.
 | Conversational authoring | Prompt → typed draft with per-step confidence + assumptions |
 | Visual editor | Canvas, JSON view, palette, step panel; custom step types from the Admin console |
 | Template gallery | Six proven `flowforge/v1` patterns (finance / HR / operations) — instantiate, edit, approve |
+| Demo pack | `flowforge demo` loads the Meridian Components mock org: people, master data, 6 workflows, 2 weeks of run history — demo-ready in one command |
 | Master data | Golden-record entities (vendors, customers, products, employees); new records enter *pending stewardship* |
 
 **Execution**
@@ -284,6 +285,7 @@ cd dsl && npm test
 | | |
 |---|---|
 | [`docs/quickstart.md`](docs/quickstart.md) | 5-minute quickstart |
+| [`docs/demo-runbook.md`](docs/demo-runbook.md) · [`demo-pack/`](demo-pack/) | The Meridian Components demo — scripted, loadable in one command |
 | [`docs/release.md`](docs/release.md) | Release runbook — verifying signatures, artifact signing |
 | [`docs/openapi.yaml`](docs/openapi.yaml) | The `/api/v1` contract |
 | [`docs/decisions.md`](docs/decisions.md) | Architecture decision record (D1–D4) |

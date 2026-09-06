@@ -23,6 +23,7 @@ import (
 
 	"github.com/flowforge/flowforge/internal/api"
 	"github.com/flowforge/flowforge/internal/connectors"
+	"github.com/flowforge/flowforge/internal/demopack"
 	"github.com/flowforge/flowforge/internal/engine"
 	"github.com/flowforge/flowforge/internal/policy"
 	"github.com/flowforge/flowforge/internal/signing"
@@ -72,6 +73,8 @@ func main() {
 		signCmd(flagSet(os.Args[2:]))
 	case "verify":
 		verifyCmd(flagSet(os.Args[2:]))
+	case "demo":
+		demoCmd()
 	default:
 		usage()
 		os.Exit(2)
@@ -141,6 +144,28 @@ func verifyCmd(key string, rest []string) {
 		fail(err.Error())
 	}
 	fmt.Printf("verified — %s\n", rest[0])
+}
+
+// demoCmd loads the Meridian Components demo organization into the current
+// DB (DB_PATH) so `flowforge serve` opens on a living company.
+func demoCmd() {
+	path := os.Getenv("DB_PATH")
+	if path == "" {
+		path = "flowforge.db"
+	}
+	s, err := store.Open(path)
+	exitOnErr(err)
+	defer s.Close()
+	if err := s.SeedIfEmpty(); err != nil {
+		exitOnErr(err)
+	}
+	sum, err := demopack.Load(s, time.Now())
+	exitOnErr(err)
+	fmt.Printf("loaded the %s demo pack:\n", sum.Org)
+	fmt.Printf("  %d deployed workflows - %d runs (14-day history) - %d master-data records - %d audit entries\n",
+		sum.Workflows, sum.Runs, sum.MDMRecords, sum.Audit)
+	fmt.Printf("next: flowforge serve   (first run creates the admin account in the UI)\n")
+	fmt.Printf("script: demo-pack/ + docs/demo-runbook.md\n")
 }
 
 func listConnectorsCmd() {
@@ -373,6 +398,7 @@ func usage() {
 	fmt.Println("  keygen [dir]                        generate an artifact signing keypair")
 	fmt.Println("  sign <file> [--key <priv>]          sign a flowforge/v1 artifact (writes <file>.sig)")
 	fmt.Println("  verify <file> [--key <pub>]         verify an artifact signature")
+	fmt.Println("  demo                                load the Meridian Components demo organization")
 	fmt.Println()
 	fmt.Println("env (serve): PORT, DB_PATH, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL")
 	fmt.Println("env (ext):   FLOWFORGE_CONNECTOR_DIR, FLOWFORGE_SECRETS_FILE, FLOWFORGE_SECRETS_KEY")

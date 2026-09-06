@@ -1,0 +1,5 @@
+{
+  "entity": "INV-2026-0913 · Nordic Copper Works AB (V-1003)",
+  "input": { "total": 4800, "vendor_id": "V-1003", "currency": "EUR" },
+  "note": "below EUR 10K — the Controller step auto-approves (condition demo)"
+}

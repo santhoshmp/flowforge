@@ -1,0 +1,47 @@
+# flowforge/v1 — Meridian Components demo pack
+# Sales: contract renewals above EUR 50K need CFO sign-off before the CRM is updated.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: customer-contract-renewal
+  version: 1
+  createdBy: Meridian demo pack
+  approvedBy: Priya Raman (CFO)
+  authoredWith: meridian-sales
+spec:
+  description: Extract the renewal terms, require CFO approval above EUR 50K, notify the account owner, update the CRM.
+  trigger:
+    event: contract.renewal_due
+    source: crm
+  steps:
+    - id: extract_terms
+      type: ai.extract
+      name: Extract renewal terms
+      params:
+        fields: account, renewal_value, end_date
+        model: auto
+    - id: value_check
+      type: condition
+      name: Renewal over EUR 50,000?
+      params:
+        expression: renewal_value > 50000
+        on_false: auto_approve
+    - id: cfo_approval
+      type: human.approval
+      name: CFO approval
+      params:
+        approver: Priya Raman (CFO)
+        sla_hours: "48"
+      on_sla_breach: escalate
+    - id: notify_account_owner
+      type: notify
+      name: Notify account owner
+      params:
+        channel: email
+        template: renewal-approved
+    - id: update_crm
+      type: integration.post
+      name: Update CRM
+      params:
+        system: CRM
+        endpoint: crm.meridian.internal/renewals

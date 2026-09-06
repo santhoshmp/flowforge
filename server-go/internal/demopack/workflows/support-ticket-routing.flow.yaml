@@ -1,0 +1,46 @@
+# flowforge/v1 — Meridian Components demo pack
+# Support: classify priority, critical tickets page the Support Lead with a 4h SLA.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: support-ticket-routing
+  version: 2
+  createdBy: Meridian demo pack
+  approvedBy: Daniel Osei (Support Lead)
+  authoredWith: meridian-support
+spec:
+  description: Classify the ticket, route critical ones to the Support Lead, page on-call, enforce a 4h escalation SLA.
+  trigger:
+    event: support_ticket.created
+    source: helpdesk
+  steps:
+    - id: classify
+      type: ai.classify
+      name: Classify priority
+      params:
+        labels: critical, high, normal
+        model: auto
+    - id: priority_check
+      type: condition
+      name: Priority critical?
+      params:
+        expression: priority == critical
+        on_false: standard_path
+    - id: lead_approval
+      type: human.approval
+      name: Support Lead review
+      params:
+        approver: Daniel Osei (Support Lead)
+        sla_hours: "4"
+      on_sla_breach: escalate
+    - id: notify_oncall
+      type: notify
+      name: Page on-call
+      params:
+        channel: slack
+        recipients: "#on-call"
+    - id: sla_wait
+      type: wait
+      name: Escalation SLA
+      params:
+        hours: "4"
