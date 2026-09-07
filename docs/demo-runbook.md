@@ -6,20 +6,73 @@
 | **Prep time** | ~2 minutes |
 | **Paths** | 5-minute teaser · 20-minute full demo |
 
-## Setup (once)
+## Step 0 — Install FlowForge (~1 minute)
+
+Pick one. You need the `flowforge` binary (or its container) before anything
+below works.
+
+**Option A — release binary** (recommended):
+
+1. Download the archive for your platform from
+   [github.com/santhoshmp/flowforge/releases/latest](https://github.com/santhoshmp/flowforge/releases/latest)
+   (linux/darwin/windows × amd64/arm64) plus `SHA256SUMS`.
+2. Verify and extract:
+
+   ```bash
+   sha256sum -c SHA256SUMS --ignore-missing
+   tar xzf flowforge-vX.Y.Z-linux-amd64.tar.gz   # or: unzip the windows .zip
+   ```
+
+3. Put `flowforge` (or `flowforge.exe`) on your PATH, or just run it from
+   the current directory as `./flowforge`.
+
+**Option B — Docker:**
+
+```bash
+docker pull ghcr.io/santhoshmp/flowforge
+```
+
+The demo commands then become (both persist into the `flowforge-data` volume):
+
+```bash
+# one-off: load Meridian Components (no port needed - it exits after loading)
+docker run --rm -v flowforge-data:/data ghcr.io/santhoshmp/flowforge demo
+
+# serve
+docker run -d -p 8080:8080 -v flowforge-data:/data ghcr.io/santhoshmp/flowforge
+```
+
+**Option C — build from source** (needs Go 1.25+ and Node 22):
+
+```bash
+git clone https://github.com/santhoshmp/flowforge && cd flowforge
+npm --prefix app install && npm --prefix app run build
+cp -r app/dist/* server-go/ui/dist/          # Windows: copy app\dist\* server-go\ui\dist\
+cd server-go && go build -o flowforge ./cmd/flowforge
+./flowforge version                          # smoke check
+```
+
+Sanity check either path: `flowforge version` (or
+`docker run --rm ghcr.io/santhoshmp/flowforge version`) prints a version.
+
+## Step 1 — Load the demo org and start (once)
 
 ```bash
 flowforge demo      # loads Meridian Components: 6 workflows, 24 runs, master data
 flowforge serve     # http://localhost:8080
 ```
 
+(Docker users: the two commands in Step 0 Option B — load once with
+`docker run --rm -v flowforge-data:/data … demo`, then serve.)
+
 In the browser: create the admin account (present it as *Elena Fischer,
 Plant Manager*), log in. Optional: Admin → AI authoring model → point at
 Ollama/OpenAI for live AI drafting (Act 2 is stronger with a real model;
 the fallback works offline).
 
-Reset any time: stop the server, delete `flowforge.db`, `flowforge demo`,
-`flowforge serve`.
+Reset any time: stop the server, delete `flowforge.db`
+(Docker: `docker volume rm flowforge-data`), then `flowforge demo` and
+`flowforge serve` again.
 
 ## The 5-minute teaser
 

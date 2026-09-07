@@ -6,11 +6,36 @@ six departmental workflows, and two weeks of realistic run history —
 so the dashboards, human-task queue, and audit trail are alive from
 the first click.
 
+## Install FlowForge first
+
+The demo needs the `flowforge` binary (or its container):
+
+```bash
+# Option A — release binary (linux/darwin/windows x amd64/arm64)
+#    download + verify + extract from:
+#    https://github.com/santhoshmp/flowforge/releases/latest
+sha256sum -c SHA256SUMS --ignore-missing
+tar xzf flowforge-vX.Y.Z-linux-amd64.tar.gz
+
+# Option B — Docker
+docker pull ghcr.io/santhoshmp/flowforge
+
+# Option C — from source (Go 1.25+ and Node 22)
+#    see docs/demo-runbook.md "Step 0"
+```
+
 ## Load it
 
 ```bash
 flowforge demo          # loads the org into DB_PATH (default flowforge.db)
 flowforge serve         # open http://localhost:8080, create the admin, explore
+```
+
+Docker equivalent (persisted in the `flowforge-data` volume):
+
+```bash
+docker run --rm -v flowforge-data:/data ghcr.io/santhoshmp/flowforge demo   # load once
+docker run -d -p 8080:8080 -v flowforge-data:/data ghcr.io/santhoshmp/flowforge   # serve
 ```
 
 `flowforge demo` is idempotent — run it again any time to reset the
