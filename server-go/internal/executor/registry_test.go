@@ -20,8 +20,13 @@ func TestEXT01_Dispatch(t *testing.T) {
 	if e := ForType("integration.post"); e == nil || e.Name() != "integration.http" {
 		t.Errorf("integration executor = %v", e)
 	}
+	// notify gained a real executor (F-NOTIF): configured backends send,
+	// unconfigured ones simulate via Configured=false.
+	if e := ForType("notify"); e == nil || e.Name() != "notify" {
+		t.Errorf("notify executor = %v", e)
+	}
 	// Unhandled types simulate (no executor).
-	for _, ty := range []string{"trigger", "notify", "human.approval", "mdm.lookup"} {
+	for _, ty := range []string{"trigger", "human.approval", "mdm.lookup"} {
 		if e := ForType(ty); e != nil {
 			t.Errorf("type %s should have no executor, got %s", ty, e.Name())
 		}

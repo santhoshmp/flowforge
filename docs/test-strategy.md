@@ -174,6 +174,23 @@
 | E2E-08 | Built binary: `run --auto-approve` completes (exit 0), no-resolver waits (exit 3), `--plan` previews | ✅ (`e2e/run_import_test.go`) |
 | E2E-09 | Built binary: `import` into a DB → `serve` on the same DB serves the draft | ✅ |
 
+### Schedules / Notifications — `internal/schedule`, `engine/scheduler.go`, `executor/notify.go`
+| ID | Scenario | Automated |
+|---|---|---|
+| SCHED-01 | Cron matcher: `*`/`*/n`/ranges/lists/names match (and don't match) expected times | ✅ (`schedule/cron_test.go`) |
+| SCHED-02 | Invalid crons rejected (fields, ranges, steps) | ✅ |
+| SCHED-03 | `Next` returns the strictly-following match incl. weekends | ✅ |
+| SCHED-04 | Scheduler fires a due slot exactly once; next slot fires; the instance runs on the engine | ✅ (`engine/scheduler_test.go`) |
+| SCHED-05 | Drafts and unscheduled workflows never fire | ✅ |
+| SCHED-06 | Restart catch-up: recent missed slots fire, stale ones (> 5 min) skip without replay | ✅ |
+| SCHED-07 | Corrupt stored schedules are ignored at runtime | ✅ |
+| SCHED-08 | Artifacts: `trigger.schedule` validates at parse; survives artifact→workflow conversion | ✅ |
+| NOTIF-01 | Slack notify posts through the egress gate; deny fails loudly | ✅ (`executor/notify_test.go`, SMTP/webhook stubs) |
+| NOTIF-02 | Email notify sends via SMTP to all recipients (subject/body/from captured) | ✅ |
+| NOTIF-03 | Safe-mode fails configured notifications (consistent with all real-execution steps) | ✅ |
+| NOTIF-04 | Unconfigured backends simulate — missing secrets never break a demo flow | ✅ |
+| NOTIF-05 | Engine integration: configured notify produces a real-send output | ✅ |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|

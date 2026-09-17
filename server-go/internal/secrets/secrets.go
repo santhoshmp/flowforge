@@ -20,11 +20,12 @@ import (
 
 // Vault is an encrypted name→value store.
 type Vault struct {
-	mu      sync.Mutex
-	path    string
-	keyPath string
-	key     []byte
-	data    map[string]string
+	mu             sync.Mutex
+	path           string
+	keyPath        string
+	key            []byte
+	persistKeyOnce bool // write the generated key file on first persist
+	data           map[string]string
 }
 
 // DefaultPath resolves the vault location: FLOWFORGE_SECRETS_FILE, else
@@ -118,6 +119,12 @@ func (v *Vault) loadKey() error {
 
 // persist encrypts and writes the vault atomically.
 func (v *Vault) persist() error {
+	if v.persistKeyOnce {
+		if err := os.WriteFile(v.keyPath, []byte(base64.StdEncoding.EncodeToString(v.key)), 0o600); err != nil {
+			return err
+		}
+		v.persistKeyOnce = false
+	}
 	plain, err := json.Marshal(v.data)
 	if err != nil {
 		return err

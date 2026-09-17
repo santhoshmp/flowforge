@@ -11,6 +11,8 @@ import (
 	"regexp"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/flowforge/flowforge/internal/schedule"
 )
 
 // WorkflowSpec is the top-level flowforge/v1 document.
@@ -37,12 +39,12 @@ type Body struct {
 	Steps       []Step  `yaml:"steps"`
 }
 
-// Trigger holds the start event and common params. (General arbitrary trigger
-// params are supported by the TS schema; the Go runner models the common
-// subset here and will generalize to a typed map in P1 alongside the engine.)
+// Trigger holds the start event and common params. A Schedule value
+// ("m h dom mon dow") marks a scheduled trigger (server-local time).
 type Trigger struct {
-	Event  string `yaml:"event"`
-	Source string `yaml:"source,omitempty"`
+	Event    string `yaml:"event"`
+	Source   string `yaml:"source,omitempty"`
+	Schedule string `yaml:"schedule,omitempty"`
 }
 
 // Step is one workflow step. Params values are strings by contract.
@@ -88,6 +90,11 @@ func Validate(s *WorkflowSpec) error {
 	}
 	if s.Spec.Trigger.Event == "" {
 		return fmt.Errorf("spec.trigger.event is required")
+	}
+	if s.Spec.Trigger.Schedule != "" {
+		if _, err := schedule.Parse(s.Spec.Trigger.Schedule); err != nil {
+			return fmt.Errorf("spec.trigger.schedule: %v", err)
+		}
 	}
 	seen := make(map[string]bool, len(s.Spec.Steps))
 	for i, st := range s.Spec.Steps {

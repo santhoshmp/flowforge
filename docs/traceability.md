@@ -58,6 +58,8 @@
 | F-RUNNER-01 | Standalone runner: headless artifact execution on the durable engine (auto-approve / interactive / waiting), policy-honoring | `server-go/internal/runner`, `spec/convert.go`, CLI `run` | RUN-01..06, E2E-08 | ✅ |
 | F-IMPORT-01 | Artifact import: yaml → draft workflow via API + CLI (export round-trip) | `server-go/internal/api/hooks.go`, CLI `import` | IMP-01/02, E2E-09 | ✅ |
 | F-HOOKS-01 | Inbound webhooks: per-workflow HMAC token, public token-gated trigger, body-as-input | `auth.HookToken/VerifyHookToken`, `api/hooks.go` | HOOK-01..03 | ✅ |
+| F-SCHED-01 | Scheduled triggers: 5-field cron on the trigger, due-slot scheduler with no-refire persistence + restart catch-up window | `internal/schedule`, `engine/scheduler.go`, `spec` trigger.schedule validation, serve 30s pass | SCHED-01..08 | ✅ |
+| F-NOTIF-01 | Real notify steps: email (SMTP) + slack (webhook, egress-gated) from vault secrets; simulated when unconfigured; safe-mode fails | `executor/notify.go` | NOTIF-01..05 | ✅ |
 | F-FACT-01 | Testable server factory + engine hook | `src/app.ts` → `createServer`; `engine.ts` → `tickAll` | (enables all API/ENG tests) | ✅ |
 
 ## Frontend — `app/`

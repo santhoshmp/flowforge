@@ -144,6 +144,8 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Changelog
 
+- **2026-09-17** — **Schedules + real notifications.** (1) **Scheduled triggers**: any artifact may declare `trigger.schedule` (5-field cron, validated at parse); `serve` evaluates deployed workflows every 30s — each slot fires exactly once (last-fired persisted in settings), restarts catch up ≤ 5-minute-old slots, stale slots skip without replay (`internal/schedule` + `engine.TickScheduler`). (2) **Real notify steps**: `type: notify` sends via email (SMTP from vault secrets `SMTP_HOST/PORT/FROM/USER/PASS`, `recipients` param) or Slack (`SLACK_WEBHOOK_URL`, egress-gated); unconfigured backends stay simulated so demos never break; safe-mode fails configured sends like every other real-execution step. Hardening: the secrets vault now creates its key file lazily (read-only consumers touch no filesystem) and fails loudly when a vault exists without its key. New scenarios SCHED-01..08, NOTIF-01..05; fixed the cron hour-field range (0-23) caught by the tests.
+
 - **2026-09-16** — **"Run it anywhere" is now literally true.** (1) **Standalone runner**: `flowforge run file.flow.yaml [--input in.json] [--auto-approve] [--entity s]` executes any artifact headlessly on the durable engine — same executor registry and policy gates as `serve`; human tasks auto-approve, prompt at a TTY, or stop the run in `waiting` (exit codes 0/1/3); `--plan` keeps the old preview (`internal/runner`). (2) **Artifact import**: `flowforge import` + `POST /api/v1/workflows/from-artifact` — exported files come back as reviewable drafts, completing the round-trip (`spec.ToWorkflow` shared converter). (3) **Inbound webhooks**: `GET /workflows/{id}/hook` returns a per-workflow token-gated URL; external systems POST JSON → it becomes run input (`POST /api/v1/hooks/{id}`; public path, HMAC token, setup-gated in auto mode). New scenarios RUN-01..06, IMP-01/02, HOOK-01..03, E2E-08/09 — all green with the full suites.
 
 - **2026-09-06** — **Demo pack shipped** (F-DEMO): the **Meridian Components** mock organization — `flowforge demo` loads 6 departmental workflows (finance, procurement, HR, support, data governance, sales) with named approvers, master data including two stewardship stories (suspected duplicate vendor V-1012, tax-id mismatch V-1006, pending hire E-4417), 24 runs of 14-day history (completed / failed-then-retried / cancelled / 6 live human tasks — one per workflow), and a matching audit narrative. Presenter assets: `demo-pack/` (org profile + run inputs) + rewritten `docs/demo-runbook.md` (5-min teaser + 20-min scripted demo). Live-verified over the API (61 total instances incl. seed, successRate 82.9%, 6 waiting). DEM-01..05 green; full suites re-run green.
@@ -179,9 +181,7 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Next up
 
-1. **Schedules** — cron triggers (`schedule.cron`) with an internal scheduler; unops batch/renewal use cases.
-2. **Real notifications** — wire `notify` steps to the SMTP/Slack connectors (they are simulated today).
-3. **Retry policies + dead-letter queue** — per-step retry/backoff; failed-task digests.
-4. **Prometheus `/metrics`** — scrapeable format alongside the UI JSON.
-5. **Runner UX** — `flowforge backup`, module-path rename (`go install`), MDM merge action, Playwright UX-01, live-LLM AI-03.
-6. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).
+1. **Retry policies + dead-letter queue** — per-step retry/backoff; failed-task digests.
+2. **Prometheus `/metrics`** — scrapeable format alongside the UI JSON.
+3. **Runner UX** — `flowforge backup`, module-path rename (`go install`), MDM merge action, Playwright UX-01, live-LLM AI-03.
+4. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).

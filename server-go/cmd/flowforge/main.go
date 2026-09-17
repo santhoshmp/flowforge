@@ -503,6 +503,14 @@ func stringsEqualFold(a, b string) bool {
 }
 
 func startScheduler(st *store.Store, pol *policy.Policy) {
+	go func() {
+		// Scheduled triggers: evaluate due cron slots every 30s; the engine
+		// pass below advances whatever the scheduler started.
+		t := time.NewTicker(30 * time.Second)
+		for range t.C {
+			_, _ = engine.TickScheduler(st, time.Now())
+		}
+	}()
 	t := time.NewTicker(850 * time.Millisecond)
 	for range t.C {
 		engine.TickAll(st, pol)

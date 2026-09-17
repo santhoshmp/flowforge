@@ -10,6 +10,10 @@ import (
 // run. The caller assigns identity and lifecycle fields (ID, status,
 // CreatedBy, ApprovedBy, CreatedAt) per its context.
 func ToWorkflow(sp *WorkflowSpec) models.Workflow {
+	trigParams := map[string]string{"event": sp.Spec.Trigger.Event}
+	if sp.Spec.Trigger.Schedule != "" {
+		trigParams["schedule"] = sp.Spec.Trigger.Schedule
+	}
 	wf := models.Workflow{
 		Name:        DisplayName(sp.Metadata.Name),
 		Description: sp.Spec.Description,
@@ -17,7 +21,7 @@ func ToWorkflow(sp *WorkflowSpec) models.Workflow {
 		Version:     sp.Metadata.Version,
 		AIModel:     sp.Metadata.AuthoredWith,
 		Steps: []models.WorkflowStep{
-			{ID: "trigger", Type: "trigger", Name: "Trigger", Params: map[string]string{"event": sp.Spec.Trigger.Event}, Confidence: 90, Assumptions: []string{}},
+			{ID: "trigger", Type: "trigger", Name: "Trigger", Params: trigParams, Confidence: 90, Assumptions: []string{}},
 		},
 	}
 	for _, st := range sp.Spec.Steps {

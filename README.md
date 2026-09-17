@@ -122,6 +122,8 @@ workflows so the whole loop works offline.
 | Durable engine | Step-by-step execution persisted to SQLite; survives restarts |
 | Standalone runner | `flowforge run file.flow.yaml` executes any artifact headlessly — same engine, executors, and policy gates, no control plane (human tasks auto-approve, prompt, or stop in `waiting`) |
 | Inbound webhooks | Every deployed workflow gets a token-gated URL — external systems POST JSON and it becomes a run (`GET /workflows/{id}/hook`) |
+| Scheduled triggers | `trigger.schedule: "0 6 * * 1-5"` (cron) — the scheduler fires deployed workflows on time, survives restarts, skips stale slots |
+| Real notifications | `notify` steps send real email (SMTP) and Slack from vault secrets — and stay simulated when unconfigured, so nothing breaks without setup |
 | Artifact import | `flowforge import file.flow.yaml` or `POST /workflows/from-artifact` — the round-trip of export: files come back as reviewable drafts |
 | Human tasks | Wait / resume with SLA tracking and escalation |
 | Conditions | Run input (e.g. `total: 24000`) drives branching; below-threshold auto-approves |
@@ -191,7 +193,15 @@ flowforge verify invoice.flow.yaml       # offline provenance check
 
 The DSL is a frozen contract ([`dsl/`](dsl)) — JSON Schema, parser, and
 canonical serializer shared by the editor, the API, and the runner, with
-round-trip conformance tests on every change.
+round-trip conformance tests on every change. Triggers carry the event or a
+cron schedule:
+
+```yaml
+spec:
+  trigger:
+    event: vendor_invoice.created
+    schedule: "0 6 * * 1-5"   # weekdays 06:00, server-local time
+```
 
 ## Architecture at a glance
 
