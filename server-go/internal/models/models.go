@@ -70,14 +70,16 @@ type Workflow struct {
 
 // StepRun is one step's runtime state within an instance.
 type StepRun struct {
-	StepID     string `json:"stepId"`
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Status     string `json:"status"`
-	StartedAt  string `json:"startedAt,omitempty"`
-	DurationMs int    `json:"durationMs,omitempty"`
-	Output     string `json:"output,omitempty"`
-	Note       string `json:"note,omitempty"`
+	StepID        string `json:"stepId"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	Status        string `json:"status"`
+	StartedAt     string `json:"startedAt,omitempty"`
+	DurationMs    int    `json:"durationMs,omitempty"`
+	Output        string `json:"output,omitempty"`
+	Note          string `json:"note,omitempty"`
+	Attempts      int    `json:"attempts,omitempty"`      // automatic retries used (params.retries)
+	NextAttemptAt string `json:"nextAttemptAt,omitempty"` // backoff gate (RFC3339) while retrying
 }
 
 // Instance is one execution of a workflow.

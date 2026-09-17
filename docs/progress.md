@@ -144,6 +144,8 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Changelog
 
+- **2026-09-17 (2)** — **Reliability & ops.** (1) **Per-step retries**: `params.retries` (+ optional `retry_delay` seconds) on any real-execution step — failed attempts re-run with a persisted backoff gate (`StepRun.Attempts/NextAttemptAt`, additive JSON), budgets clamped (10 / 3600s), errors surface the attempt count. (2) **DLQ**: `GET /api/v1/dlq` (failures, oldest first, ageSeconds) + `POST /dlq/{id}/requeue` (re-drive from the failed step); terminal failures post a digest to vault secret `ALERT_WEBHOOK_URL` (best-effort, policy-gated). (3) **Prometheus `/metrics`** (instances/workflows/human-tasks/build_info/success-rate, text format) behind the normal auth gate — the dispatcher now routes `/metrics` through the API mux. New scenarios RTY-01..05, DLQ/DLQQ, PMET (12); the metrics route 404 was caught by tests before shipping.
+
 - **2026-09-17** — **Schedules + real notifications.** (1) **Scheduled triggers**: any artifact may declare `trigger.schedule` (5-field cron, validated at parse); `serve` evaluates deployed workflows every 30s — each slot fires exactly once (last-fired persisted in settings), restarts catch up ≤ 5-minute-old slots, stale slots skip without replay (`internal/schedule` + `engine.TickScheduler`). (2) **Real notify steps**: `type: notify` sends via email (SMTP from vault secrets `SMTP_HOST/PORT/FROM/USER/PASS`, `recipients` param) or Slack (`SLACK_WEBHOOK_URL`, egress-gated); unconfigured backends stay simulated so demos never break; safe-mode fails configured sends like every other real-execution step. Hardening: the secrets vault now creates its key file lazily (read-only consumers touch no filesystem) and fails loudly when a vault exists without its key. New scenarios SCHED-01..08, NOTIF-01..05; fixed the cron hour-field range (0-23) caught by the tests.
 
 - **2026-09-16** — **"Run it anywhere" is now literally true.** (1) **Standalone runner**: `flowforge run file.flow.yaml [--input in.json] [--auto-approve] [--entity s]` executes any artifact headlessly on the durable engine — same executor registry and policy gates as `serve`; human tasks auto-approve, prompt at a TTY, or stop the run in `waiting` (exit codes 0/1/3); `--plan` keeps the old preview (`internal/runner`). (2) **Artifact import**: `flowforge import` + `POST /api/v1/workflows/from-artifact` — exported files come back as reviewable drafts, completing the round-trip (`spec.ToWorkflow` shared converter). (3) **Inbound webhooks**: `GET /workflows/{id}/hook` returns a per-workflow token-gated URL; external systems POST JSON → it becomes run input (`POST /api/v1/hooks/{id}`; public path, HMAC token, setup-gated in auto mode). New scenarios RUN-01..06, IMP-01/02, HOOK-01..03, E2E-08/09 — all green with the full suites.
@@ -181,7 +183,5 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Next up
 
-1. **Retry policies + dead-letter queue** — per-step retry/backoff; failed-task digests.
-2. **Prometheus `/metrics`** — scrapeable format alongside the UI JSON.
-3. **Runner UX** — `flowforge backup`, module-path rename (`go install`), MDM merge action, Playwright UX-01, live-LLM AI-03.
-4. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).
+1. **Runner UX** — `flowforge backup`, module-path rename (`go install`), MDM merge action, Playwright UX-01, live-LLM AI-03.
+2. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).

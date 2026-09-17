@@ -424,6 +424,7 @@ func runServe() {
 	dbPath := envOr("DB_PATH", "flowforge.db")
 	authMode := envOr("FLOWFORGE_AUTH", "auto")
 	pol := policy.FromEnv(os.Getenv)
+	api.Version = version
 
 	st, err := store.Open(dbPath)
 	if err != nil {

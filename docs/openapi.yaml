@@ -223,6 +223,14 @@ paths:
       summary: Store a secret (AES-256-GCM encrypted at rest)
       requestBody: { content: { application/json: { schema: { type: object, required: [name, value], properties: { name: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }, value: { type: string } } } } } }
       responses: { "200": { description: stored } }
+  /api/v1/dlq:
+    get:
+      tags: [Executions]
+      summary: Dead-letter queue — failed instances, oldest first
+      responses: { "200": { description: "instance[] with ageSeconds" } }
+  /api/v1/dlq/{id}/requeue:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post: { tags: [Executions], summary: Re-drive a failed instance from its failed step, responses: { "200": { description: running instance }, "404": { description: not found } } }
   /api/v1/secrets/{name}:
     parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
     delete: { tags: [Secrets], summary: Delete a secret, responses: { "200": { description: ok }, "404": { description: not found } } }

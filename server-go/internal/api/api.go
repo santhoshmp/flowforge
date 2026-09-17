@@ -41,6 +41,7 @@ func New(s *store.Store, authMode string) *Server {
 	srv := &Server{store: s, mux: http.NewServeMux(), authMode: authMode}
 	srv.routes()
 	srv.registerExtRoutes()
+	srv.registerOpsRoutes()
 	srv.api = auth.Wrap(s, authMode, srv.mux)
 	return srv
 }
@@ -48,7 +49,9 @@ func New(s *store.Store, authMode string) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	rw := &statusRecorder{ResponseWriter: w, status: 200}
-	if strings.HasPrefix(r.URL.Path, "/api/") {
+	// /metrics lives outside /api/v1 (Prometheus convention) but still
+	// routes through the API mux — so it keeps the auth gate.
+	if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/metrics" {
 		s.api.ServeHTTP(rw, r)
 		fmt.Printf("[api] %s %s -> %d (%dms)\n", r.Method, r.URL.Path, rw.status, time.Since(start).Milliseconds())
 		return

@@ -191,6 +191,22 @@
 | NOTIF-04 | Unconfigured backends simulate — missing secrets never break a demo flow | ✅ |
 | NOTIF-05 | Engine integration: configured notify produces a real-send output | ✅ |
 
+### Reliability / Ops — retries, DLQ, Prometheus
+| ID | Scenario | Automated |
+|---|---|---|
+| RTY-01 | Exhausted retries fail the instance with the attempt count surfaced | ✅ (`engine/retry_test.go`) |
+| RTY-02 | Transient upstream failure recovers within the retry budget (attempts recorded) | ✅ |
+| RTY-03 | `retry_delay` parks the step in backoff until the gate elapses | ✅ |
+| RTY-04 | Without a `retries` param, failure is immediate (legacy behavior) | ✅ |
+| RTY-05 | Retry budgets clamped (max 10 / 3600s); nil-step safety | ✅ |
+| DLQ-01 | Failure digest posts to `ALERT_WEBHOOK_URL` with workflow/step/instance | ✅ (`executor/alert_test.go`) |
+| DLQ-02 | No secret → silently no alert | ✅ |
+| DLQ-03 | Safe-mode / egress denials skip alerts silently | ✅ |
+| DLQQ-01 | `GET /dlq` lists failures only, with ageSeconds | ✅ (`api/ops_test.go`) |
+| DLQQ-02 | `POST /dlq/{id}/requeue` re-drives from the failed step; 404 unknown | ✅ |
+| PMET-01 | `GET /metrics` exposes Prometheus text format with core series | ✅ |
+| PMET-02 | `build_info` reflects the version stamped by main | ✅ |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|

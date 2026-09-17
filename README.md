@@ -127,7 +127,9 @@ workflows so the whole loop works offline.
 | Artifact import | `flowforge import file.flow.yaml` or `POST /workflows/from-artifact` — the round-trip of export: files come back as reviewable drafts |
 | Human tasks | Wait / resume with SLA tracking and escalation |
 | Conditions | Run input (e.g. `total: 24000`) drives branching; below-threshold auto-approves |
-| Failure handling | Retry from the failed step (never re-runs completed work); cancel with audit |
+| Failure handling | Retry from the failed step (never re-runs completed work); cancel with audit; per-step automatic retries (`retries` + `retry_delay` backoff) |
+| Dead-letter queue | `GET /dlq` lists failures oldest-first; `POST /dlq/{id}/requeue` re-drives them; terminal failures alert an ops webhook (`ALERT_WEBHOOK_URL` secret) |
+| Prometheus | `/metrics` in text exposition format (instances, workflows, pending tasks, success rate) — behind the same auth gate as the API |
 | Observability | Fleet KPIs, 14-day trends, per-workflow tracker, live step timeline |
 
 **Extensibility**

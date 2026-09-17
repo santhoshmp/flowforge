@@ -6,6 +6,7 @@
 package engine
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -184,6 +185,17 @@ func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance) {
 	cur := &runs[idx]
 	wfStep := stepByID[cur.StepID]
 
+	// Retry backoff gate: a step scheduled for a later attempt waits.
+	if cur.NextAttemptAt != "" {
+		if t, err := time.Parse(time.RFC3339, cur.NextAttemptAt); err == nil && time.Now().Before(t) {
+			inst.CurrentStep = idx
+			inst.StepRuns = runs
+			_ = s.UpsertInstance(*inst)
+			return
+		}
+		cur.NextAttemptAt = ""
+	}
+
 	// pending -> running
 	if cur.Status == models.StepPending {
 		cur.Status = models.StepRunning
@@ -246,15 +258,36 @@ func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance) {
 	default:
 		out, rerr, real, dms := runReal(wfStep, inst.Input, pol)
 		if real && rerr != nil {
+			// Automatic retries (params.retries + optional retry_delay
+			// seconds): the step goes back to pending with a backoff gate.
+			if maxRetry := stepRetries(wfStep); cur.Attempts < maxRetry {
+				cur.Attempts++
+				cur.Status = models.StepPending
+				cur.Output = ""
+				cur.Note = fmt.Sprintf("retry %d/%d after failure: %s", cur.Attempts, maxRetry, rerr.Error())
+				if delay := stepRetryDelay(wfStep); delay > 0 {
+					cur.NextAttemptAt = time.Now().Add(time.Duration(delay) * time.Second).UTC().Format(time.RFC3339)
+				}
+				delete(runTicks, key) // restart duration ticks on the retry
+				inst.Status = models.InstRunning
+				inst.CurrentStep = idx
+				inst.StepRuns = runs
+				_ = s.UpsertInstance(*inst)
+				return
+			}
 			// Real execution attempted and failed (e.g., blocked by policy, network) -> halt.
 			cur.Status = models.StepFailed
 			cur.Note = rerr.Error()
 			inst.Status = models.InstFailed
 			inst.Error = rerr.Error()
+			if cur.Attempts > 0 {
+				inst.Error = fmt.Sprintf("%s (after %d retries)", rerr.Error(), cur.Attempts)
+			}
 			inst.CurrentStep = idx
 			inst.StepRuns = runs
 			_ = s.UpsertInstance(*inst)
 			_ = s.AddAudit(audit("system", "Step failed", inst.ID+" · "+cur.Name+" — "+rerr.Error(), "execution"))
+			executor.SendFailureAlert(inst.WorkflowName, inst.ID, cur.Name, rerr.Error(), pol)
 			return
 		}
 		cur.Status = models.StepSucceeded
@@ -331,4 +364,34 @@ func CancelInstance(s *store.Store, id string) (*models.Instance, error) {
 	}
 	_ = s.AddAudit(audit("You", "Instance cancelled", id, "execution"))
 	return inst, nil
+}
+
+// stepRetries parses params.retries (max automatic retries; 0 = fail fast).
+func stepRetries(step *models.WorkflowStep) int {
+	if step == nil {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(step.Params["retries"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	if n > 10 {
+		return 10 // sanity bound
+	}
+	return n
+}
+
+// stepRetryDelay parses params.retry_delay seconds (0 = retry next tick).
+func stepRetryDelay(step *models.WorkflowStep) int {
+	if step == nil {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(step.Params["retry_delay"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	if n > 3600 {
+		return 3600 // sanity bound
+	}
+	return n
 }

@@ -156,3 +156,36 @@ func notifySecret(name string) (string, bool) {
 	v, ok := vault.Get(name)
 	return v, ok && v != ""
 }
+
+// SendFailureAlert posts a terminal-failure digest to the ops webhook
+// (vault secret ALERT_WEBHOOK_URL) when configured — the DLQ digest.
+// Best-effort by design: alerting problems must never fail the engine
+// (silent return on missing secret, safe-mode, or egress denial).
+func SendFailureAlert(workflowName, instanceID, stepName, stepErr string, pol *policy.Policy) {
+	url, ok := notifySecret("ALERT_WEBHOOK_URL")
+	if !ok {
+		return
+	}
+	if pol != nil && pol.SafeMode {
+		return
+	}
+	if pol != nil && !pol.EgressAllowed(url) {
+		return
+	}
+	body, err := json.Marshal(map[string]string{
+		"text": fmt.Sprintf("FlowForge DLQ: %s failed at step %q: %s (instance %s)", workflowName, stepName, stepErr, instanceID),
+	})
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err == nil {
+		resp.Body.Close()
+	}
+}
