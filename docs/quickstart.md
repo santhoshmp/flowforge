@@ -33,12 +33,13 @@ First launch is in **setup mode**: create the admin account in the browser
 
 ## 5. Take it with you
 
-**Workflows** → *Export*: a portable `*.flow.yaml` you can validate and
-preview anywhere:
+**Workflows** → *Export*: a portable `*.flow.yaml` you can validate, run
+standalone, sign, and re-import anywhere:
 
 ```bash
 ./flowforge validate my-flow.flow.yaml
-./flowforge run my-flow.flow.yaml        # execution plan preview
+./flowforge run my-flow.flow.yaml --input in.json --auto-approve   # real standalone execution
+./flowforge import my-flow.flow.yaml                               # back into a control plane as a draft
 ```
 
 ## Beyond the basics

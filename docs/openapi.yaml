@@ -87,6 +87,7 @@ paths:
       requestBody: { content: { application/json: { schema: { type: object } } } }
       responses: { "200": { description: updated } }
   /api/v1/workflows/{id}/approve:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
     post:
       tags: [Workflows]
       summary: Approve & deploy (gated)
@@ -94,8 +95,37 @@ paths:
         Approval validates `connector` steps against the installed connector
         registry and their params schemas (decision D1) — a workflow with an
         unknown connector or missing required params is rejected with 400.
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       responses: { "200": { description: deployed }, "400": { description: connector validation failed } }
+  /api/v1/workflows/from-artifact:
+    post:
+      tags: [Workflows]
+      summary: Import a flowforge/v1 artifact as a draft (export round-trip)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [yaml]
+              properties:
+                yaml: { type: string, description: full flowforge/v1 YAML text }
+      responses: { "200": { description: draft workflow }, "400": { description: invalid artifact } }
+  /api/v1/workflows/{id}/hook:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get:
+      tags: [Workflows]
+      summary: Webhook URL + token for a deployed workflow
+      responses: { "200": { description: "{url, token, usage}" }, "400": { description: not deployed }, "404": { description: not found } }
+  /api/v1/hooks/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    post:
+      tags: [Workflows]
+      summary: Trigger a deployed workflow from an external system
+      description: |
+        Public path (no session) authenticated by the per-workflow HMAC token
+        (`X-FlowForge-Token` header or `?token=`). The JSON body becomes the
+        run input; an optional top-level `entity` string names the run.
+      requestBody: { content: { application/json: { schema: { type: object } } } }
+      responses: { "200": { description: "{instanceId, status, entity}" }, "401": { description: invalid token }, "409": { description: not deployed } }
   /api/v1/workflows/{id}/executions:
     parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
     get: { tags: [Executions], summary: Per-workflow executions, responses: { "200": { description: ok } } }

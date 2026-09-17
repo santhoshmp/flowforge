@@ -32,6 +32,12 @@ func (s *Server) registerExtRoutes() {
 	m.HandleFunc("GET /api/v1/secrets", s.listSecrets)
 	m.HandleFunc("PUT /api/v1/secrets", s.putSecret)
 	m.HandleFunc("DELETE /api/v1/secrets/{name}", s.deleteSecret)
+
+	// Artifact import (round-trips the export): yaml text in, draft out.
+	m.HandleFunc("POST /api/v1/workflows/from-artifact", s.importArtifact)
+	// Inbound webhooks: external systems start deployed workflows.
+	m.HandleFunc("GET /api/v1/workflows/{id}/hook", s.workflowHookInfo)
+	m.HandleFunc("POST /api/v1/hooks/{id}", s.triggerHook)
 }
 
 // ---- Connectors -------------------------------------------------------------

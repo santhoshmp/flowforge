@@ -14,21 +14,26 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/flowforge/flowforge/internal/api"
 	"github.com/flowforge/flowforge/internal/connectors"
 	"github.com/flowforge/flowforge/internal/demopack"
 	"github.com/flowforge/flowforge/internal/engine"
+	"github.com/flowforge/flowforge/internal/models"
 	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/flowforge/flowforge/internal/runner"
 	"github.com/flowforge/flowforge/internal/signing"
 	"github.com/flowforge/flowforge/internal/spec"
 	"github.com/flowforge/flowforge/internal/store"
+	"github.com/flowforge/flowforge/internal/util"
 	"github.com/flowforge/flowforge/internal/wasm"
 	"github.com/flowforge/flowforge/ui"
 )
@@ -52,13 +57,10 @@ func main() {
 		fmt.Printf("valid — %s\n", s.Summary())
 	case "run":
 		requireFile("run")
-		s, err := loadSpec(os.Args[2])
-		exitOnErr(err)
-		fmt.Printf("plan: %s\n", s.Summary())
-		for i, st := range s.Spec.Steps {
-			fmt.Printf("  %d. [%s] %s\n", i+1, st.Type, st.Name)
-		}
-		fmt.Println("note: durable execution engine runs via `serve`; this is a plan preview.")
+		runCmd(os.Args[2:])
+	case "import":
+		requireFile("import")
+		importCmd(os.Args[2])
 	case "serve":
 		runServe()
 	case "connectors":
@@ -79,6 +81,143 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
+}
+
+// ---- standalone runner + artifact import -------------------------------------
+
+// runFlags parses the run command's flags; returns the artifact path.
+type runOpts struct {
+	file        string
+	plan        bool
+	autoApprove bool
+	entity      string
+	input       map[string]any
+}
+
+func parseRunArgs(args []string) runOpts {
+	o := runOpts{}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--plan":
+			o.plan = true
+		case "--auto-approve", "-y":
+			o.autoApprove = true
+		case "--entity":
+			i++
+			if i >= len(args) {
+				fail("--entity requires a value")
+			}
+			o.entity = args[i]
+		case "--input":
+			i++
+			if i >= len(args) {
+				fail("--input requires a JSON file path")
+			}
+			_, o.input = loadTestInput([]string{args[i]})
+		default:
+			if o.file != "" {
+				fail("unexpected argument: " + args[i])
+			}
+			o.file = args[i]
+		}
+	}
+	if o.file == "" {
+		fail("usage: flowforge run <file.flow.yaml> [--plan] [--input in.json] [--entity s] [--auto-approve]")
+	}
+	return o
+}
+
+// runCmd executes a portable artifact headlessly on the durable engine —
+// the same executors and policy gates as `serve`, without a control plane.
+func runCmd(args []string) {
+	opts := parseRunArgs(args)
+
+	raw, err := os.ReadFile(opts.file)
+	exitOnErr(err)
+	if opts.plan {
+		s, err := loadSpec(opts.file)
+		exitOnErr(err)
+		fmt.Printf("plan: %s\n", s.Summary())
+		for i, st := range s.Spec.Steps {
+			fmt.Printf("  %d. [%s] %s\n", i+1, st.Type, st.Name)
+		}
+		return
+	}
+
+	s, err := store.Open(":memory:")
+	exitOnErr(err)
+	defer s.Close()
+
+	inst, err := runner.Run(s, string(raw), runner.Options{
+		Policy:      policy.FromEnv(os.Getenv),
+		Input:       opts.input,
+		Entity:      opts.entity,
+		AutoApprove: opts.autoApprove,
+		Interactive: promptApprove,
+		Progress:    func(line string) { fmt.Println(line) },
+	})
+	if inst != nil {
+		switch inst.Status {
+		case models.InstCompleted:
+			fmt.Printf("completed — %s (%d steps)\n", inst.Entity, len(inst.StepRuns))
+		case models.InstFailed:
+			fmt.Printf("failed — %s\nerror: %s\n", inst.Entity, inst.Error)
+		case models.InstWaiting:
+			fmt.Printf("waiting — %s (task: %s; rerun with --auto-approve to resolve)\n", inst.Entity, inst.WaitingOn)
+		}
+	}
+	if err != nil {
+		if errors.Is(err, runner.ErrWaiting) {
+			os.Exit(3)
+		}
+		exitOnErr(err)
+	}
+	if inst != nil && inst.Status == models.InstFailed {
+		os.Exit(1)
+	}
+	if inst != nil && inst.Status == models.InstWaiting {
+		os.Exit(3)
+	}
+}
+
+// promptApprove asks at a terminal; non-interactive stdin declines.
+func promptApprove(approver string) bool {
+	fi, err := os.Stdin.Stat()
+	if err != nil || fi.Mode()&os.ModeCharDevice == 0 {
+		return false
+	}
+	fmt.Printf("waiting on %s — approve? [y/N] ", approver)
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	answer = strings.ToLower(strings.TrimSpace(answer))
+	return answer == "y" || answer == "yes"
+}
+
+// importCmd loads an artifact into a control-plane DB as a draft.
+func importCmd(file string) {
+	sp, err := loadSpec(file)
+	exitOnErr(err)
+
+	path := os.Getenv("DB_PATH")
+	if path == "" {
+		path = "flowforge.db"
+	}
+	s, err := store.Open(path)
+	exitOnErr(err)
+	defer s.Close()
+	if err := s.SeedIfEmpty(); err != nil {
+		exitOnErr(err)
+	}
+
+	wf := spec.ToWorkflow(sp)
+	wf.ID = "wf-" + util.UID()
+	wf.Status = models.StatusDraft
+	wf.CreatedBy = "You"
+	wf.AIModel = "import"
+	wf.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	exitOnErr(s.UpsertWorkflow(wf))
+	fmt.Printf("imported — %s (id %s, %d steps)\n", wf.Name, wf.ID, len(wf.Steps)-1)
+	fmt.Printf("next: flowforge serve → review → approve to deploy\n")
 }
 
 // ---- artifact signing (F-DSL-03) --------------------------------------------
@@ -389,7 +528,10 @@ func usage() {
 	fmt.Println("commands:")
 	fmt.Println("  version              print the version")
 	fmt.Println("  validate <file>      parse + validate a flowforge/v1 artifact")
-	fmt.Println("  run <file>           parse, validate, and preview the execution plan")
+	fmt.Println("  run <file>           run an artifact STANDALONE on the durable engine")
+	fmt.Println("                        flags: --plan (preview only) --input in.json")
+	fmt.Println("                               --entity s --auto-approve (human tasks)")
+	fmt.Println("  import <file>        load an artifact into the DB as a draft workflow")
 	fmt.Println("  serve                run the control plane (API + engine + UI) on :8080")
 	fmt.Println("  connectors           list installed connectors (built-ins + drop-in dir)")
 	fmt.Println("  connector validate <dir>            validate a connector directory")

@@ -131,7 +131,28 @@ func bearer(r *http.Request) string {
 }
 
 func isPublic(path string) bool {
-	return path == "/api/v1/health" || strings.HasPrefix(path, "/api/v1/auth/")
+	if path == "/api/v1/health" || strings.HasPrefix(path, "/api/v1/auth/") {
+		return true
+	}
+	// Inbound webhooks are called by external systems without a session;
+	// each hook authenticates with its own per-workflow HMAC token.
+	return strings.HasPrefix(path, "/api/v1/hooks/")
+}
+
+// HookToken derives the stable inbound-webhook token for a workflow
+// (HMAC over "hook:"+id keyed by the server secret — survives restarts).
+func HookToken(s *store.Store, workflowID string) string {
+	mac := hmac.New(sha256.New, []byte(serverSecret(s)))
+	mac.Write([]byte("hook:" + workflowID))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// VerifyHookToken checks an inbound-webhook token.
+func VerifyHookToken(s *store.Store, workflowID, token string) bool {
+	if token == "" {
+		return false
+	}
+	return hmac.Equal([]byte(HookToken(s, workflowID)), []byte(token))
 }
 
 // Wrap gates the API. mode "off" disables auth (dev / Node parity); "auto"

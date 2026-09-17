@@ -98,10 +98,11 @@ func TestE2E02_ValidateCLI(t *testing.T) {
 		t.Fatalf("invalid artifact accepted: %q", out)
 	}
 
-	// run prints the execution plan for a valid artifact.
-	out, err = run(t, "run", good)
+	// `run --plan` prints the execution plan (plain `run` now EXECUTES —
+	// covered by E2E-08).
+	out, err = run(t, "run", good, "--plan")
 	if err != nil || !strings.Contains(out, "plan:") {
-		t.Fatalf("run: %v %q", err, out)
+		t.Fatalf("run --plan: %v %q", err, out)
 	}
 }
 

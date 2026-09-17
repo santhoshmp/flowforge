@@ -55,6 +55,9 @@
 | F-EXT-07 | OpenAPI contract + versioning policy + quickstart | `docs/{openapi.yaml,versioning.md,quickstart.md}` | — | ✅ |
 | F-EXT-08 | Contributor docs for connectors/plugins | `connectors/README.md`, `docs/decisions.md` | — | ✅ |
 | F-DEMO-01 | Demo pack: Meridian Components org (MDM + governance stories), 6 workflows, 14-day run history, `flowforge demo` CLI, presenter runbook | `server-go/internal/demopack` (+`demopack_test.go`), `demo-pack/`, `docs/demo-runbook.md` | DEM-01..05 | ✅ |
+| F-RUNNER-01 | Standalone runner: headless artifact execution on the durable engine (auto-approve / interactive / waiting), policy-honoring | `server-go/internal/runner`, `spec/convert.go`, CLI `run` | RUN-01..06, E2E-08 | ✅ |
+| F-IMPORT-01 | Artifact import: yaml → draft workflow via API + CLI (export round-trip) | `server-go/internal/api/hooks.go`, CLI `import` | IMP-01/02, E2E-09 | ✅ |
+| F-HOOKS-01 | Inbound webhooks: per-workflow HMAC token, public token-gated trigger, body-as-input | `auth.HookToken/VerifyHookToken`, `api/hooks.go` | HOOK-01..03 | ✅ |
 | F-FACT-01 | Testable server factory + engine hook | `src/app.ts` → `createServer`; `engine.ts` → `tickAll` | (enables all API/ENG tests) | ✅ |
 
 ## Frontend — `app/`

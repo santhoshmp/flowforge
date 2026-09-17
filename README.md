@@ -120,6 +120,9 @@ workflows so the whole loop works offline.
 | | |
 |---|---|
 | Durable engine | Step-by-step execution persisted to SQLite; survives restarts |
+| Standalone runner | `flowforge run file.flow.yaml` executes any artifact headlessly — same engine, executors, and policy gates, no control plane (human tasks auto-approve, prompt, or stop in `waiting`) |
+| Inbound webhooks | Every deployed workflow gets a token-gated URL — external systems POST JSON and it becomes a run (`GET /workflows/{id}/hook`) |
+| Artifact import | `flowforge import file.flow.yaml` or `POST /workflows/from-artifact` — the round-trip of export: files come back as reviewable drafts |
 | Human tasks | Wait / resume with SLA tracking and escalation |
 | Conditions | Run input (e.g. `total: 24000`) drives branching; below-threshold auto-approves |
 | Failure handling | Retry from the failed step (never re-runs completed work); cancel with audit |
@@ -266,13 +269,14 @@ Also: `/metrics`, `/mdm`, `/controls`, `/audit`, `/settings/ai`,
 
 ## Quality
 
-The suite that guards all of this — **Go 94 tests across 14 packages**
-including a **binary E2E suite** (built binary: CLI, live `serve`, full
-lifecycle with the real scheduler, kill-and-restart durability),
-**Node 16/16**, **DSL 14/14**, plus CI jobs for Docker (build + container
-smoke) and Helm (lint + render). Scenario catalog:
-[`docs/test-strategy.md`](docs/test-strategy.md)
-(ENG · API · DSL · SEC · STORE · EXT · CONN · PLG · TPL · SIGN · E2E · DIST).
+The suite that guards all of this — **Go 111 tests across 16 packages**
+including a **binary E2E suite** (built binary: CLI, standalone `run`,
+import, live `serve`, full lifecycle with the real scheduler,
+kill-and-restart durability), **Node 16/16**, **DSL 14/14**, plus CI
+jobs for Docker (build + container smoke) and Helm (lint + render).
+Scenario catalog: [`docs/test-strategy.md`](docs/test-strategy.md)
+(ENG · API · DSL · SEC · STORE · EXT · CONN · PLG · TPL · SIGN · RUN ·
+IMP · HOOK · DEM · E2E · DIST).
 
 ```bash
 cd server-go && go test ./...     # includes e2e

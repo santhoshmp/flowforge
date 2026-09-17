@@ -15,8 +15,10 @@ import (
 // parseYAML is a thin alias to the frozen-DSL parser.
 func parseYAML(s string) (*spec.WorkflowSpec, error) { return spec.ParseYAML(s) }
 
-// anchor is a fixed clock so history dates are deterministic.
-var anchor = time.Date(2026, 9, 6, 12, 0, 0, 0, time.UTC)
+// anchor is the clock for history dates. It tracks the real now (truncated)
+// because metrics.Compute builds its 14-day window from time.Now() — a hard
+// fixed date would drift out of the window.
+var anchor = time.Now().UTC().Truncate(time.Hour)
 
 // DEM-01: every embedded artifact parses + validates against the frozen DSL.
 func TestDEM01_ArtifactsValidate(t *testing.T) {

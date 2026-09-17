@@ -157,6 +157,23 @@
 | DEM-04 | MDM governance stories present (duplicate vendor, tax mismatch, pending hire) | ✅ |
 | DEM-05 | Load is idempotent (re-runs neither duplicate rows nor break audit) | ✅ |
 
+### Runner / Import / Webhooks — `internal/runner`, `internal/api/hooks.go`
+| ID | Scenario | Automated |
+|---|---|---|
+| RUN-01 | Standalone run completes with `--auto-approve` (progress log, endedAt) | ✅ (`runner/runner_test.go`) |
+| RUN-02 | Without a resolver the run stops at the human task (`ErrWaiting`) | ✅ |
+| RUN-03 | Below-threshold condition auto-approves — unattended completion | ✅ |
+| RUN-04 | Interactive resolver approves mid-run | ✅ |
+| RUN-05 | Invalid artifacts rejected before execution | ✅ |
+| RUN-06 | Real script execution honors policy (permissive runs; safe-mode fails) | ✅ |
+| IMP-01 | `POST /workflows/from-artifact` creates a **draft** (never auto-deployed; refuses to run) | ✅ (`api/hooks_test.go`) |
+| IMP-02 | Invalid artifact bodies rejected with the validation error | ✅ |
+| HOOK-01 | Hook info (URL+token) only for deployed workflows; 400 draft / 404 unknown | ✅ |
+| HOOK-02 | Token-gated public trigger: body becomes run input, `entity` honored; bad/missing token 401 and creates nothing | ✅ |
+| HOOK-03 | Tokens are per-workflow (cross-workflow token rejected) | ✅ |
+| E2E-08 | Built binary: `run --auto-approve` completes (exit 0), no-resolver waits (exit 3), `--plan` previews | ✅ (`e2e/run_import_test.go`) |
+| E2E-09 | Built binary: `import` into a DB → `serve` on the same DB serves the draft | ✅ |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|
