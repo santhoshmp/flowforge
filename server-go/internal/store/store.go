@@ -7,10 +7,13 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
 
 	_ "modernc.org/sqlite"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 type Store struct {
@@ -22,8 +25,7 @@ func Open(path string) (*Store, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
-	}
-	// Single connection: simple/synchronous writes and shared :memory: in tests.
+	} // Single connection: simple/synchronous writes and shared :memory: in tests.
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(schema); err != nil {
 		return nil, err
@@ -33,6 +35,42 @@ func Open(path string) (*Store, error) {
 
 // Close closes the underlying database.
 func (s *Store) Close() error { return s.db.Close() }
+
+// Backup writes a consistent snapshot of the database to path (SQLite
+// VACUUM INTO — safe on a live database). An existing file at path is
+// replaced.
+func (s *Store) Backup(path string) error {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	quoted := strings.ReplaceAll(path, "'", "''")
+	if _, err := s.db.Exec("VACUUM INTO '" + quoted + "'"); err != nil {
+		return err
+	}
+	// Verify the snapshot is a readable, consistent database.
+	chk, err := QuickCheck(path)
+	if err != nil {
+		return err
+	}
+	if chk != "ok" {
+		return fmt.Errorf("backup integrity check failed: %s", chk)
+	}
+	return nil
+}
+
+// QuickCheck opens a database file read-only and runs PRAGMA quick_check.
+func QuickCheck(path string) (string, error) {
+	db, err := sql.Open("sqlite", "file:"+path+"?mode=ro")
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+	var result string
+	if err := db.QueryRow("PRAGMA quick_check").Scan(&result); err != nil {
+		return "", err
+	}
+	return result, nil
+}
 
 const schema = `
 CREATE TABLE IF NOT EXISTS workflows (

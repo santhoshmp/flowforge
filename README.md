@@ -113,7 +113,7 @@ workflows so the whole loop works offline.
 | Visual editor | Canvas, JSON view, palette, step panel; custom step types from the Admin console |
 | Template gallery | Six proven `flowforge/v1` patterns (finance / HR / operations) — instantiate, edit, approve |
 | Demo pack | `flowforge demo` loads the Meridian Components mock org: people, master data, 6 workflows, 2 weeks of run history — demo-ready in one command |
-| Master data | Golden-record entities (vendors, customers, products, employees); new records enter *pending stewardship* |
+| Master data | Golden-record entities (vendors, customers, products, employees); new records enter *pending stewardship* — stewards promote, merge into golden, or reject them (`POST /mdm/{entity}/resolve`) |
 
 **Execution**
 
@@ -130,6 +130,7 @@ workflows so the whole loop works offline.
 | Failure handling | Retry from the failed step (never re-runs completed work); cancel with audit; per-step automatic retries (`retries` + `retry_delay` backoff) |
 | Dead-letter queue | `GET /dlq` lists failures oldest-first; `POST /dlq/{id}/requeue` re-drives them; terminal failures alert an ops webhook (`ALERT_WEBHOOK_URL` secret) |
 | Prometheus | `/metrics` in text exposition format (instances, workflows, pending tasks, success rate) — behind the same auth gate as the API |
+| Backups | `flowforge backup` snapshots the DB safely while running (integrity-checked); `flowforge restore` brings it back |
 | Observability | Fleet KPIs, 14-day trends, per-workflow tracker, live step timeline |
 
 **Extensibility**

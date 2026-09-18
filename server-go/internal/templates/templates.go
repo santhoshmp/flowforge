@@ -12,8 +12,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/spec"
 )
 
 //go:embed gallery

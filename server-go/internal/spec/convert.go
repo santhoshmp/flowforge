@@ -3,7 +3,7 @@
 package spec
 
 import (
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 // ToWorkflow converts a validated artifact into a workflow the engine can

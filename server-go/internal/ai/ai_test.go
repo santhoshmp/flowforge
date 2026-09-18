@@ -3,7 +3,7 @@ package ai
 import (
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 // Go mirror of AI-01/AI-02 (deterministic path only). Feature F-AI.

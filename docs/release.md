@@ -90,10 +90,9 @@ Single replica by design (SQLite on a RWO PVC, `Recreate` strategy) — see
 
 ## Known limitations (v0.1.0)
 
-- `go install github.com/santhoshmp/flowforge/...@latest` does not work: the
-  Go module path is `github.com/flowforge/flowforge`. Building from source
-  (`git clone` + `go build`) and the binary/Docker/Helm distributions are the
-  supported paths. Renaming the module to match the repo is planned before a
-  1.0 (`go.mod` + import rewrite).
+- ~~`go install github.com/santhoshmp/flowforge/...` does not work: the Go
+  module path is `github.com/flowforge/flowforge`.~~ **Fixed** — the module
+  was renamed to `github.com/santhoshmp/flowforge`; `go install` works and
+  building from source is unchanged.
 - The image is published to `ghcr.io/santhoshmp/flowforge` (this repository's
   GitHub Packages namespace).

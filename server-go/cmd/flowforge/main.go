@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -23,19 +24,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/api"
-	"github.com/flowforge/flowforge/internal/connectors"
-	"github.com/flowforge/flowforge/internal/demopack"
-	"github.com/flowforge/flowforge/internal/engine"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
-	"github.com/flowforge/flowforge/internal/runner"
-	"github.com/flowforge/flowforge/internal/signing"
-	"github.com/flowforge/flowforge/internal/spec"
-	"github.com/flowforge/flowforge/internal/store"
-	"github.com/flowforge/flowforge/internal/util"
-	"github.com/flowforge/flowforge/internal/wasm"
-	"github.com/flowforge/flowforge/ui"
+	"github.com/santhoshmp/flowforge/internal/api"
+	"github.com/santhoshmp/flowforge/internal/connectors"
+	"github.com/santhoshmp/flowforge/internal/demopack"
+	"github.com/santhoshmp/flowforge/internal/engine"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/runner"
+	"github.com/santhoshmp/flowforge/internal/signing"
+	"github.com/santhoshmp/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/wasm"
+	"github.com/santhoshmp/flowforge/ui"
 )
 
 // version is overridden at release time via
@@ -77,6 +78,10 @@ func main() {
 		verifyCmd(flagSet(os.Args[2:]))
 	case "demo":
 		demoCmd()
+	case "backup":
+		backupCmd(os.Args[2:])
+	case "restore":
+		restoreCmd(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -218,6 +223,69 @@ func importCmd(file string) {
 	exitOnErr(s.UpsertWorkflow(wf))
 	fmt.Printf("imported — %s (id %s, %d steps)\n", wf.Name, wf.ID, len(wf.Steps)-1)
 	fmt.Printf("next: flowforge serve → review → approve to deploy\n")
+}
+
+// ---- backup / restore ---------------------------------------------------------
+
+// backupCmd snapshots the DB (DB_PATH) into an output file (VACUUM INTO +
+// integrity check). Safe while the server runs.
+func backupCmd(args []string) {
+	path := envOr("DB_PATH", "flowforge.db")
+	out := ""
+	for _, a := range args {
+		if a != "--force" {
+			out = a
+		}
+	}
+	if out == "" {
+		out = "flowforge-backup-" + time.Now().UTC().Format("20060102-150405") + ".db"
+	}
+	s, err := store.Open(path)
+	exitOnErr(err)
+	defer s.Close()
+	if err := s.SeedIfEmpty(); err != nil {
+		exitOnErr(err)
+	}
+	exitOnErr(s.Backup(out))
+	n := 0
+	if wfs, err := s.ListWorkflows(); err == nil {
+		n = len(wfs)
+	}
+	fmt.Printf("backup complete — %s (%d workflows, integrity verified)\n", out, n)
+}
+
+// restoreCmd copies a backup file over the DB (offline restore: stop the
+// server first). Refuses to overwrite an existing DB without --force.
+func restoreCmd(args []string) {
+	if len(args) < 1 || args[0] == "" || args[0] == "--force" {
+		fail("usage: flowforge restore <backup.db> [--force]")
+	}
+	src := args[0]
+	force := false
+	for _, a := range args {
+		if a == "--force" {
+			force = true
+		}
+	}
+	if chk, err := store.QuickCheck(src); err != nil {
+		exitOnErr(fmt.Errorf("cannot read backup %s: %v", src, err))
+	} else if chk != "ok" {
+		fail("backup integrity check failed: " + chk)
+	}
+	dst := envOr("DB_PATH", "flowforge.db")
+	if _, err := os.Stat(dst); err == nil && !force {
+		fail(dst + " already exists — pass --force to overwrite (stop the server first)")
+	}
+	in, err := os.Open(src)
+	exitOnErr(err)
+	defer in.Close()
+	out, err := os.Create(dst)
+	exitOnErr(err)
+	if _, err := io.Copy(out, in); err != nil {
+		exitOnErr(err)
+	}
+	exitOnErr(out.Close())
+	fmt.Printf("restored — %s -> %s (start with: flowforge serve)\n", src, dst)
 }
 
 // ---- artifact signing (F-DSL-03) --------------------------------------------
@@ -550,6 +618,8 @@ func usage() {
 	fmt.Println("  sign <file> [--key <priv>]          sign a flowforge/v1 artifact (writes <file>.sig)")
 	fmt.Println("  verify <file> [--key <pub>]         verify an artifact signature")
 	fmt.Println("  demo                                load the Meridian Components demo organization")
+	fmt.Println("  backup [out.db]                     snapshot the DB (VACUUM INTO + integrity check)")
+	fmt.Println("  restore <backup.db> [--force]       offline restore over DB_PATH")
 	fmt.Println()
 	fmt.Println("env (serve): PORT, DB_PATH, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL")
 	fmt.Println("env (ext):   FLOWFORGE_CONNECTOR_DIR, FLOWFORGE_SECRETS_FILE, FLOWFORGE_SECRETS_KEY")

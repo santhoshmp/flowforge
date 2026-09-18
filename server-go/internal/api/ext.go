@@ -10,13 +10,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/flowforge/flowforge/internal/connectors"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
-	"github.com/flowforge/flowforge/internal/secrets"
-	"github.com/flowforge/flowforge/internal/templates"
-	"github.com/flowforge/flowforge/internal/util"
-	"github.com/flowforge/flowforge/internal/wasm"
+	"github.com/santhoshmp/flowforge/internal/connectors"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/secrets"
+	"github.com/santhoshmp/flowforge/internal/templates"
+	"github.com/santhoshmp/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/wasm"
 )
 
 func (s *Server) registerExtRoutes() {

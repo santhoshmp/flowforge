@@ -6,7 +6,7 @@ package templates
 import (
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 func TestTPL03_EveryTemplateInstantiates(t *testing.T) {

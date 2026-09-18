@@ -6,7 +6,7 @@ package store
 import (
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 // STORE-01: workflow upsert → get → update → get roundtrip (nested steps JSON).

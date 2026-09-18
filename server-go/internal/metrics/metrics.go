@@ -5,8 +5,8 @@ package metrics
 import (
 	"time"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 const dayMs = 24 * 60 * 60 * 1000

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 // Fixed seed for reproducible data across restarts and test runs.
@@ -32,8 +32,12 @@ func pick(s []string) string {
 	}
 	return s[rng.Intn(len(s))]
 }
-func isoAgo(days, hours int) string {
-	return time.Now().UTC().Add(-time.Duration(days)*24*time.Hour - time.Duration(hours)*time.Hour).Format(time.RFC3339)
+func isoAgo(days, _ int) string {
+	// Pinned to midday UTC of the target day so seeded history always lands
+	// inside the metrics 14-day window (random hours could cross midnight).
+	day := time.Now().UTC().AddDate(0, 0, -days)
+	noon := time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, time.UTC)
+	return noon.Format(time.RFC3339)
 }
 
 // durFor returns a realistic per-step duration in ms.

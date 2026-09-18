@@ -1,6 +1,6 @@
 package store
 
-import "github.com/flowforge/flowforge/internal/seed"
+import "github.com/santhoshmp/flowforge/internal/seed"
 
 // SeedIfEmpty populates the database with the demo dataset on first run.
 func (s *Store) SeedIfEmpty() error {

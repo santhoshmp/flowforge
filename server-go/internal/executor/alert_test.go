@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/policy"
 )
 
 // DLQ-01: a configured ops webhook receives the failure digest.

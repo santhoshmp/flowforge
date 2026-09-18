@@ -19,11 +19,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/executor"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
-	"github.com/flowforge/flowforge/internal/secrets"
-	"github.com/flowforge/flowforge/internal/wasm"
+	"github.com/santhoshmp/flowforge/internal/executor"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/secrets"
+	"github.com/santhoshmp/flowforge/internal/wasm"
 )
 
 func init() { executor.Register(connectorStepExecutor{}) }

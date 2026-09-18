@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 func execStore(t *testing.T, steps ...models.WorkflowStep) *store.Store {

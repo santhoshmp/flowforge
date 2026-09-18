@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/policy"
 )
 
 // ---- tiny wasm binary builder ------------------------------------------------

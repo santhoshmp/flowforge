@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/policy"
 )
 
 // modLogResult: ff.log(data) then ff.result(data) — same buffer for both.

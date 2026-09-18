@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/flowforge/flowforge/internal/auth"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/spec"
-	"github.com/flowforge/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/auth"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/util"
 )
 
 // ---- Artifact import ---------------------------------------------------------

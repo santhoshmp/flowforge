@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/spec"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 //go:embed workflows
@@ -257,9 +257,12 @@ func decisiveIndex(wf models.Workflow, r historyRun) int {
 }
 
 // buildInstance materializes one history run into a store-ready instance
-// with step-level state consistent with the final status.
+// with step-level state consistent with the final status. Starts are pinned
+// to midday UTC of their day so they always land inside the metrics
+// 14-day window regardless of when the pack loads.
 func buildInstance(wf models.Workflow, sp *spec.WorkflowSpec, r historyRun, now time.Time) models.Instance {
-	start := now.AddDate(0, 0, -r.daysAgo).Add(-5 * time.Hour).UTC()
+	day := now.UTC().AddDate(0, 0, -r.daysAgo)
+	start := time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, time.UTC)
 	var end time.Time
 	switch r.status {
 	case models.InstCompleted:

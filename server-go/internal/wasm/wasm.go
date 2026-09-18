@@ -28,7 +28,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 	"github.com/tetratelabs/wazero/sys"
 
-	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/policy"
 )
 
 // Limits cap plugin execution. Defaults: 512 pages (32 MiB), 5s.

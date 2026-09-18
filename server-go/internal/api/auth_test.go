@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 // P2 auth flow (feature F-SEC). Mode "auto": setup-mode gating then token-required.

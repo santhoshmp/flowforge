@@ -3,7 +3,7 @@
 // suspected duplicate vendor and a tax-id mismatch) for the stewardship demo.
 package demopack
 
-import "github.com/flowforge/flowforge/internal/models"
+import "github.com/santhoshmp/flowforge/internal/models"
 
 // Org is the demo organization profile (surfaces in the runbook and summary).
 const Org = "Meridian Components"

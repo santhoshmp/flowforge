@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/flowforge/flowforge/internal/schedule"
+	"github.com/santhoshmp/flowforge/internal/schedule"
 )
 
 // WorkflowSpec is the top-level flowforge/v1 document.

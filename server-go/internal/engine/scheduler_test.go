@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/spec"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 func schedStore(t *testing.T, schedule string, status string) *store.Store {

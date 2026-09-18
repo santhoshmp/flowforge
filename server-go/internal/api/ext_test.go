@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/engine"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
-	"github.com/flowforge/flowforge/internal/secrets"
+	"github.com/santhoshmp/flowforge/internal/engine"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/secrets"
 )
 
 func TestConnectorsEndpoints(t *testing.T) {

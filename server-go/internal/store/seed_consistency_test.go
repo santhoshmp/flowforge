@@ -3,7 +3,7 @@ package store
 import (
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/models"
 )
 
 // Validates that the seeded data maintains correct relationships:

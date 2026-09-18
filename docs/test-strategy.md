@@ -207,6 +207,19 @@
 | PMET-01 | `GET /metrics` exposes Prometheus text format with core series | ✅ |
 | PMET-02 | `build_info` reflects the version stamped by main | ✅ |
 
+### Backup / MDM resolve / live AI
+| ID | Scenario | Automated |
+|---|---|---|
+| BAK-01 | Backup snapshot is a readable DB with identical counts; live DB unaffected | ✅ (`store/backup_test.go`) |
+| BAK-02 | Repeat backups replace cleanly; `quick_check` passes | ✅ |
+| BAK-03 | Snapshot writes are isolated from the live DB | ✅ |
+| E2E-10 | Built binary: `backup` verifies integrity; `restore` guards + `--force` | ✅ (`e2e/backup_test.go`) |
+| MERGE-01 | Steward promotes a pending record to golden (audited) | ✅ (`api/mdm_resolve_test.go`) |
+| MERGE-02 | Steward merges a pending record into an existing golden one (audited) | ✅ |
+| MERGE-03 | Steward rejects (deletes) a pending record | ✅ |
+| MERGE-04 | Guards: unknown record/entity 404, golden refuses, invalid action/merge target 400 | ✅ |
+| AI-03 | Live LLM authoring round-trip | 🟡 opt-in (`FLOWFORGE_LIVE_AI_KEY`/`OPENAI_API_KEY`; skips otherwise) |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|

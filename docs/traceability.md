@@ -63,6 +63,9 @@
 | F-RTY-01 | Per-step automatic retries: `params.retries` + `retry_delay` backoff gate, attempts persisted on StepRun, budgets clamped | `engine/engine.go` (retry branch + `stepRetries/stepRetryDelay`), `models.StepRun.Attempts/NextAttemptAt` | RTY-01..05 | ✅ |
 | F-DLQ-01 | Dead-letter queue: `GET /dlq` (failures, oldest first) + `requeue`; failure digests to `ALERT_WEBHOOK_URL` | `api/ops.go`, `executor.SendFailureAlert` | DLQ-01..03, DLQQ-01/02 | ✅ |
 | F-PROM-01 | Prometheus `/metrics` (instances/workflows/tasks/build_info/success rate), behind the auth gate | `api/ops.go` + dispatcher route | PMET-01/02 | ✅ |
+| F-BACKUP-01 | `flowforge backup` (VACUUM INTO + integrity check, live-safe) / `restore` (guarded, --force) | `store.Backup/QuickCheck`, CLI | BAK-01..03, E2E-10 | ✅ |
+| F-MDM-RESOLVE-01 | MDM stewardship resolution: promote / merge-into-golden / reject on pending records, audited | `api/mdm_resolve.go` | MERGE-01..04 | ✅ |
+| F-MOD-01 | Go module renamed to `github.com/santhoshmp/flowforge` — `go install` works | `go.mod` + all imports | full suite | ✅ |
 | F-FACT-01 | Testable server factory + engine hook | `src/app.ts` → `createServer`; `engine.ts` → `tickAll` | (enables all API/ENG tests) | ✅ |
 
 ## Frontend — `app/`

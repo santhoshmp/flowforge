@@ -18,8 +18,8 @@ import (
 
 	"go.starlark.net/starlark"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/policy"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/policy"
 )
 
 // ErrNotConfigured signals the step is not configured for real execution and

@@ -19,8 +19,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/flowforge/flowforge/internal/store"
-	"github.com/flowforge/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/util"
 )
 
 const secretSetting = "auth_secret"

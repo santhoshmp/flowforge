@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 func testStore(t *testing.T) *store.Store {

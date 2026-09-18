@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/ai"
-	"github.com/flowforge/flowforge/internal/auth"
-	"github.com/flowforge/flowforge/internal/engine"
-	"github.com/flowforge/flowforge/internal/metrics"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/settings"
-	"github.com/flowforge/flowforge/internal/store"
-	"github.com/flowforge/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/ai"
+	"github.com/santhoshmp/flowforge/internal/auth"
+	"github.com/santhoshmp/flowforge/internal/engine"
+	"github.com/santhoshmp/flowforge/internal/metrics"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/settings"
+	"github.com/santhoshmp/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/util"
 )
 
 // Server is the HTTP control plane bound to a store.
@@ -42,6 +42,7 @@ func New(s *store.Store, authMode string) *Server {
 	srv.routes()
 	srv.registerExtRoutes()
 	srv.registerOpsRoutes()
+	srv.registerMDMResolve()
 	srv.api = auth.Wrap(s, authMode, srv.mux)
 	return srv
 }

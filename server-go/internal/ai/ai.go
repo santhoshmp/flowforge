@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/settings"
-	"github.com/flowforge/flowforge/internal/util"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/settings"
+	"github.com/santhoshmp/flowforge/internal/util"
 )
 
 type GeneratedDraft struct {

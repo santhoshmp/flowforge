@@ -144,6 +144,8 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Changelog
 
+- **2026-09-17 (3)** — **Runner-UX batch.** (1) **Go module renamed** to `github.com/santhoshmp/flowforge` (50 files) — `go install` now works; the release Known Limitation is closed. (2) **`flowforge backup`** (`VACUUM INTO` + `quick_check`, safe on a live DB, repeatable) and **`flowforge restore`** (integrity-checked, refuses overwriting without `--force`). (3) **MDM steward resolution**: `POST /mdm/{entity}/resolve` promotes / merges-into-golden / rejects pending-stewardship records — the governance loop for the demo's duplicate-vendor story. (4) **AI-03** live-LLM test (opt-in via key env, skips otherwise). Also fixed two latent 14-day-window flakes (demopack `-5h` offset and seed's random-hour `isoAgo` — both now pin to midday UTC, caught while re-verifying the rename). New scenarios: BAK-01..03, E2E-10, MERGE-01..04, AI-03.
+
 - **2026-09-17 (2)** — **Reliability & ops.** (1) **Per-step retries**: `params.retries` (+ optional `retry_delay` seconds) on any real-execution step — failed attempts re-run with a persisted backoff gate (`StepRun.Attempts/NextAttemptAt`, additive JSON), budgets clamped (10 / 3600s), errors surface the attempt count. (2) **DLQ**: `GET /api/v1/dlq` (failures, oldest first, ageSeconds) + `POST /dlq/{id}/requeue` (re-drive from the failed step); terminal failures post a digest to vault secret `ALERT_WEBHOOK_URL` (best-effort, policy-gated). (3) **Prometheus `/metrics`** (instances/workflows/human-tasks/build_info/success-rate, text format) behind the normal auth gate — the dispatcher now routes `/metrics` through the API mux. New scenarios RTY-01..05, DLQ/DLQQ, PMET (12); the metrics route 404 was caught by tests before shipping.
 
 - **2026-09-17** — **Schedules + real notifications.** (1) **Scheduled triggers**: any artifact may declare `trigger.schedule` (5-field cron, validated at parse); `serve` evaluates deployed workflows every 30s — each slot fires exactly once (last-fired persisted in settings), restarts catch up ≤ 5-minute-old slots, stale slots skip without replay (`internal/schedule` + `engine.TickScheduler`). (2) **Real notify steps**: `type: notify` sends via email (SMTP from vault secrets `SMTP_HOST/PORT/FROM/USER/PASS`, `recipients` param) or Slack (`SLACK_WEBHOOK_URL`, egress-gated); unconfigured backends stay simulated so demos never break; safe-mode fails configured sends like every other real-execution step. Hardening: the secrets vault now creates its key file lazily (read-only consumers touch no filesystem) and fails loudly when a vault exists without its key. New scenarios SCHED-01..08, NOTIF-01..05; fixed the cron hour-field range (0-23) caught by the tests.
@@ -183,5 +185,6 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Next up
 
-1. **Runner UX** — `flowforge backup`, module-path rename (`go install`), MDM merge action, Playwright UX-01, live-LLM AI-03.
-2. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).
+1. **UI polish** — MDM resolve buttons (promote/merge/reject) in the Master Data section; app lint cleanup; docs site.
+2. **Playwright UX-01** — browser E2E (needs the Playwright toolchain installed).
+3. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).

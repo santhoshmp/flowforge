@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/auth"
+	"github.com/santhoshmp/flowforge/internal/auth"
 )
 
 const importArtifact = `apiVersion: flowforge/v1

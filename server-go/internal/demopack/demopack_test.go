@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowforge/flowforge/internal/metrics"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/spec"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/metrics"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/spec"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 // parseYAML is a thin alias to the frozen-DSL parser.

@@ -1,4 +1,4 @@
-module github.com/flowforge/flowforge
+module github.com/santhoshmp/flowforge
 
 go 1.25.0
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowforge/flowforge/internal/engine"
-	"github.com/flowforge/flowforge/internal/models"
-	"github.com/flowforge/flowforge/internal/store"
+	"github.com/santhoshmp/flowforge/internal/engine"
+	"github.com/santhoshmp/flowforge/internal/models"
+	"github.com/santhoshmp/flowforge/internal/store"
 )
 
 // Go mirror of API-01..06 (see docs/test-strategy.md). Feature F-API.
