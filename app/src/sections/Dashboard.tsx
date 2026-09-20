@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -95,7 +95,7 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tracking dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track every workflow — throughput, outcomes, bottlenecks, and live runs. Invoke and act from here.</p>
+          <p className="text-sm text-muted-foreground mt-1">Track every workflow â€” throughput, outcomes, bottlenecks, and live runs. Invoke and act from here.</p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="gap-1.5" onClick={loadMetrics}><Activity className="h-3.5 w-3.5" /> Refresh</Button>
@@ -108,17 +108,17 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
         </div>
       )}
       {!metrics && !metricsErr && (
-        <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">Loading dashboard data…</div>
+        <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">Loading dashboard dataâ€¦</div>
       )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <KPI icon={Layers} label="Total runs" value={f ? String(f.totalRuns) : '—'} sub={`${f?.deployed ?? 0} deployed workflows`} tone="text-violet-600" />
-        <KPI icon={CheckCircle2} label="Success rate" value={f?.successRate != null ? `${f.successRate}%` : '—'} sub={`${f?.completed ?? 0} completed`} tone="text-emerald-600" />
-        <KPI icon={Activity} label="Running" value={f ? String(f.running) : '—'} tone="text-indigo-600" />
-        <KPI icon={Clock} label="Waiting (human)" value={f ? String(f.waiting) : '—'} sub="pending approvals" tone="text-amber-600" />
-        <KPI icon={XCircle} label="Failed" value={f ? String(f.failed) : '—'} tone="text-rose-600" />
-        <KPI icon={Timer} label="Avg duration" value={f?.avgDurationMs ? fmtDur(f.avgDurationMs) : '—'} sub="per completed run" tone="text-sky-600" />
+        <KPI icon={Layers} label="Total runs" value={f ? String(f.totalRuns) : 'â€”'} sub={`${f?.deployed ?? 0} deployed workflows`} tone="text-violet-600" />
+        <KPI icon={CheckCircle2} label="Success rate" value={f?.successRate != null ? `${f.successRate}%` : 'â€”'} sub={`${f?.completed ?? 0} completed`} tone="text-emerald-600" />
+        <KPI icon={Activity} label="Running" value={f ? String(f.running) : 'â€”'} tone="text-indigo-600" />
+        <KPI icon={Clock} label="Waiting (human)" value={f ? String(f.waiting) : 'â€”'} sub="pending approvals" tone="text-amber-600" />
+        <KPI icon={XCircle} label="Failed" value={f ? String(f.failed) : 'â€”'} tone="text-rose-600" />
+        <KPI icon={Timer} label="Avg duration" value={f?.avgDurationMs ? fmtDur(f.avgDurationMs) : 'â€”'} sub="per completed run" tone="text-sky-600" />
       </div>
 
       {/* Charts */}
@@ -144,7 +144,7 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
                   <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
                   <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} fontSize={10} tickLine={false} axisLine={false} />
                   <YAxis allowDecimals={false} fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11, border: '1px solid #e2e8f0' }} labelFormatter={(v: any) => v} />
+                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11, border: '1px solid #e2e8f0' }} labelFormatter={(v: string) => v} />
                   <Area type="monotone" dataKey="completed" stroke={SERIES.completed} fill="url(#g-completed)" strokeWidth={2} />
                   <Area type="monotone" dataKey="failed" stroke={SERIES.failed} fill="url(#g-failed)" strokeWidth={2} />
                   <Area type="monotone" dataKey="waiting" stroke={SERIES.waiting} fill="url(#g-waiting)" strokeWidth={2} />
@@ -212,10 +212,10 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
                         <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
                           <div className={cn('h-full rounded-full', (w.successRate ?? 0) >= 90 ? 'bg-emerald-500' : (w.successRate ?? 0) >= 75 ? 'bg-amber-500' : 'bg-rose-500')} style={{ width: `${w.successRate ?? 0}%` }} />
                         </div>
-                        <span className="text-[11px] tabular-nums text-muted-foreground">{w.successRate != null ? `${w.successRate}%` : '—'}</span>
+                        <span className="text-[11px] tabular-nums text-muted-foreground">{w.successRate != null ? `${w.successRate}%` : 'â€”'}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">{w.avgDurationMs ? fmtDur(w.avgDurationMs) : '—'}</td>
+                    <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">{w.avgDurationMs ? fmtDur(w.avgDurationMs) : 'â€”'}</td>
                     <td className="px-3 py-3 text-muted-foreground">{timeAgo(w.lastRunIso)}</td>
                     <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
@@ -253,7 +253,7 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
           </div>
           <div className="rounded-lg bg-muted/50 border px-3 py-2 font-mono text-[11px] text-muted-foreground flex items-center gap-2">
             <Code2 className="h-3.5 w-3.5 shrink-0" />
-            POST /api/v1/workflows/{selWf.id}/executions  <span className="text-slate-400">— actions: /executions/{'{id}'}/approve · /retry · /cancel</span>
+            POST /api/v1/workflows/{selWf.id}/executions  <span className="text-slate-400">â€” actions: /executions/{'{id}'}/approve Â· /retry Â· /cancel</span>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-5">
@@ -261,10 +261,10 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
             <div className="lg:col-span-3">
               <div className="text-xs font-semibold text-muted-foreground mb-2">Recent executions ({selInstances.length})</div>
               <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
-                {selInstances.length === 0 && <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">No executions yet — hit Run.</div>}
+                {selInstances.length === 0 && <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">No executions yet â€” hit Run.</div>}
                 {selInstances.slice(0, 30).map((i) => (
                   <ExecRow key={i.id} inst={i}
-                    onApprove={async () => { await approveTask(i.id); toast.success('Approved — resumed'); }}
+                    onApprove={async () => { await approveTask(i.id); toast.success('Approved â€” resumed'); }}
                     onRetry={async () => { await retryInstance(i.id); toast.success('Retrying from failed step'); }}
                     onCancel={async () => { await cancelInstance(i.id); toast.success('Cancelled'); }}
                   />
@@ -284,7 +284,7 @@ export default function Dashboard({ onGoMonitor }: { onGoMonitor: () => void }) 
                       <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" horizontal={false} />
                       <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v: number) => fmtDur(v)} />
                       <YAxis type="category" dataKey="name" fontSize={10} tickLine={false} axisLine={false} width={110} />
-                      <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11, border: '1px solid #e2e8f0' }} formatter={(v: any) => fmtDur(Number(v))} />
+                      <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11, border: '1px solid #e2e8f0' }} formatter={(v: number | string) => fmtDur(Number(v))} />
                       <Bar dataKey="avgMs" name="avg" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -307,7 +307,7 @@ function ExecRow({ inst, onApprove, onRetry, onCancel }: { inst: Instance; onApp
           <span className="font-mono text-[11px] text-muted-foreground">{inst.id}</span>
           <StatusPill status={inst.status} />
         </div>
-        <div className="truncate text-[11px] text-muted-foreground">{inst.entity} · {timeAgo(inst.startedAt)}{inst.error ? ` · ${inst.error}` : ''}</div>
+        <div className="truncate text-[11px] text-muted-foreground">{inst.entity} Â· {timeAgo(inst.startedAt)}{inst.error ? ` Â· ${inst.error}` : ''}</div>
       </div>
       <div className="flex items-center gap-1">
         {inst.status === 'waiting' && <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-amber-300 text-amber-800" onClick={onApprove}><UserCheck className="h-3 w-3" /> Approve</Button>}

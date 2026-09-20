@@ -30,6 +30,11 @@ export default function Studio({ onGoMonitor, editWorkflow, onEditDone }: { onGo
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [jsonEditing, setJsonEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [phase, setPhase] = useState<number>(-1);
+  const [draft, setDraft] = useState<GeneratedDraft | null>(null);
+  const [edges, setEdges] = useState<DraftEdge[]>([]);
+  const [editing, setEditing] = useState<WorkflowStep | null>(null);
+  const [approved, setApproved] = useState<Workflow | null>(null);
   const { controlMap } = useStore();
 
   // Load an existing workflow into the designer when "Edit" is clicked
@@ -50,11 +55,6 @@ export default function Studio({ onGoMonitor, editWorkflow, onEditDone }: { onGo
     setPromptOpen(false);
     setViewMode('designer');
   }, [editWorkflow]);
-  const [phase, setPhase] = useState<number>(-1);
-  const [draft, setDraft] = useState<GeneratedDraft | null>(null);
-  const [edges, setEdges] = useState<DraftEdge[]>([]);
-  const [editing, setEditing] = useState<WorkflowStep | null>(null);
-  const [approved, setApproved] = useState<Workflow | null>(null);
 
   const generate = async (text: string) => {
     if (!text.trim() || phase >= 0) return;
@@ -163,7 +163,9 @@ export default function Studio({ onGoMonitor, editWorkflow, onEditDone }: { onGo
         position: { x: 80, y: 30 + d.steps.length * 118 },
       };
       const next = [...d.steps, newStep];
-      setEdges(chainEdges(next));
+      // Edge state is derived outside the updater (setEdges inside a
+      // setState updater is a side effect the compiler rightly rejects).
+      queueMicrotask(() => setEdges(chainEdges(next)));
       return { ...d, steps: next };
     });
     toast.success(`${controlMap[type]?.label ?? type} step added — click it to configure`);

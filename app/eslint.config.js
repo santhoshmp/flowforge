@@ -20,4 +20,23 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Vendored shadcn/ui components export variant helpers (buttonVariants,
+    // badgeVariants, ...) alongside components, and shared canvas/step/store
+    // modules export non-component utilities by design — the fast-refresh
+    // boundary rule does not fit those files.
+    files: ['src/components/ui/**', 'src/components/FlowCanvas.tsx', 'src/components/step.tsx', 'src/lib/store.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // react-hooks v7 flags synchronous setState in effects. Our deliberate
+    // load-on-mount patterns (store bootstrap, metrics/config fetch-then-set)
+    // are safe and standard; keep them visible as warnings instead of errors.
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+    },
+  },
 ])

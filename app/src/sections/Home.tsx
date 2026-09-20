@@ -25,7 +25,9 @@ export default function Home({ onGoStudio, onEditWorkflow }: { onGoStudio: () =>
     api.getTemplates().then(setTemplates).catch(() => setTemplates([]));
   }, []);
 
-  const useTemplate = async (id: string) => {
+  // NOTE: intentionally NOT named useXxx — this is a plain async handler,
+  // not a hook (the old name tripped react-hooks/rules-of-hooks).
+  const startFromTemplate = async (id: string) => {
     setBusy(id);
     try {
       const wf = await instantiateTemplate(id);
@@ -94,7 +96,7 @@ export default function Home({ onGoStudio, onEditWorkflow }: { onGoStudio: () =>
                     variant="outline"
                     className="ml-auto h-7 text-[11px]"
                     disabled={busy !== null}
-                    onClick={() => useTemplate(t.id)}
+                    onClick={() => startFromTemplate(t.id)}
                   >
                     {busy === t.id ? 'Creating…' : 'Use template'}
                   </Button>

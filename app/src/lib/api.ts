@@ -222,6 +222,8 @@ export const api = {
   getMDM: () => http<MDMEntity[]>('/api/v1/mdm'),
   addMDMRecord: (entityKey: string, rec: MDMRecord) =>
     http<MDMEntity>(`/api/v1/mdm/${entityKey}`, { method: 'POST', body: json({ record: rec }) }),
+  resolveMDMRecord: (entityKey: string, payload: { id: string; action: 'promote' | 'merge' | 'reject'; mergeInto?: string }) =>
+    http<MDMEntity>(`/api/v1/mdm/${entityKey}/resolve`, { method: 'POST', body: json(payload) }),
 
   getControls: () => http<ControlDef[]>('/api/v1/controls'),
   addControl: (def: ControlDef) => http<ControlDef>('/api/v1/controls', { method: 'POST', body: json(def) }),

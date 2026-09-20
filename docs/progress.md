@@ -144,6 +144,8 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Changelog
 
+- **2026-09-20** — **UI cleanup.** Lint now passes with **0 errors** (was 33): deleted 44 unused shadcn scaffold files (43 `ui/` components + `use-mobile` — only 13 of 48 were used); fixed a real rules-of-hooks bug (template handler named `useTemplate`), declaration-order/immutability issues in Studio, a `setState`-inside-updater side effect, render-scope `Date.now`/`Math.random` purity violations (sidebar deleted, TestLab clock armed inside the tick), and typed the remaining `any`s. ESLint config now scopes the fast-refresh export rule off vendored `ui/`+shared-utility files and downgrades the new strict `set-state-in-effect` rule to warn for the deliberate load-on-mount patterns. **MDM steward UI**: pending-stewardship rows get Promote / Merge / Reject actions (merge targets golden records via dialog; every resolution audited) — closing the governance loop in the UI, backed by the resolve API.
+
 - **2026-09-17 (3)** — **Runner-UX batch.** (1) **Go module renamed** to `github.com/santhoshmp/flowforge` (50 files) — `go install` now works; the release Known Limitation is closed. (2) **`flowforge backup`** (`VACUUM INTO` + `quick_check`, safe on a live DB, repeatable) and **`flowforge restore`** (integrity-checked, refuses overwriting without `--force`). (3) **MDM steward resolution**: `POST /mdm/{entity}/resolve` promotes / merges-into-golden / rejects pending-stewardship records — the governance loop for the demo's duplicate-vendor story. (4) **AI-03** live-LLM test (opt-in via key env, skips otherwise). Also fixed two latent 14-day-window flakes (demopack `-5h` offset and seed's random-hour `isoAgo` — both now pin to midday UTC, caught while re-verifying the rename). New scenarios: BAK-01..03, E2E-10, MERGE-01..04, AI-03.
 
 - **2026-09-17 (2)** — **Reliability & ops.** (1) **Per-step retries**: `params.retries` (+ optional `retry_delay` seconds) on any real-execution step — failed attempts re-run with a persisted backoff gate (`StepRun.Attempts/NextAttemptAt`, additive JSON), budgets clamped (10 / 3600s), errors surface the attempt count. (2) **DLQ**: `GET /api/v1/dlq` (failures, oldest first, ageSeconds) + `POST /dlq/{id}/requeue` (re-drive from the failed step); terminal failures post a digest to vault secret `ALERT_WEBHOOK_URL` (best-effort, policy-gated). (3) **Prometheus `/metrics`** (instances/workflows/human-tasks/build_info/success-rate, text format) behind the normal auth gate — the dispatcher now routes `/metrics` through the API mux. New scenarios RTY-01..05, DLQ/DLQQ, PMET (12); the metrics route 404 was caught by tests before shipping.
@@ -185,6 +187,6 @@ Run: `cd server && npm test` (watch: `npm run test:watch`). Scenario IDs map to 
 
 ## Next up
 
-1. **UI polish** — MDM resolve buttons (promote/merge/reject) in the Master Data section; app lint cleanup; docs site.
+1. **Docs site** — publish docs/ as a site (mkdocs/astro) with the quickstart front and center.
 2. **Playwright UX-01** — browser E2E (needs the Playwright toolchain installed).
 3. Later: P5 enterprise (SSO/RBAC, Postgres, HA) per [build-plan.md](./build-plan.md).

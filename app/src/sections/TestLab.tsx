@@ -77,7 +77,9 @@ export default function TestLab() {
   const payloadRef = useRef<Record<string, unknown>>({});
   const startedRef = useRef(0);
 
-  const checks = useMemo(() => (wf ? runChecks(wf, payload, mdm, controls) : []), [wf, payload, mdm, controls]);
+  // Deliberately unmemoized: runChecks is a cheap pure function, and the
+  // prior useMemo tripped the compiler's manual-memoization preservation.
+  const checks = wf ? runChecks(wf, payload, mdm, controls) : [];
   const hasFail = checks.some((c) => c.level === 'fail');
 
   const allRecords = mdm.flatMap((e) => e.records.map((r) => ({ value: `${e.key}/${r.id}`, label: `${e.key}/${r.id} — ${r.name ?? r.id}` })));
@@ -86,7 +88,8 @@ export default function TestLab() {
     if (!wf || hasFail || status === 'running') return;
     try { payloadRef.current = JSON.parse(payload); } catch { return; }
     autoApproveRef.current = false;
-    startedRef.current = Date.now();
+    // NOTE: the start timestamp is taken inside the effect below —
+    // Date.now() here would be an impure call in render scope.
     runsRef.current = wf.steps.map((s) => ({ stepId: s.id, name: s.name, type: s.type, status: 'pending' as const }));
     setTestRuns(runsRef.current);
     setStatus('running');
@@ -95,6 +98,7 @@ export default function TestLab() {
   useEffect(() => {
     if (status !== 'running' || !wf) return;
     const t = setInterval(() => {
+      if (startedRef.current === 0) startedRef.current = Date.now(); // arm on the first tick
       const runs = runsRef.current.map((r) => ({ ...r }));
       const idx = runs.findIndex((r) => r.status === 'running' || r.status === 'pending');
       if (idx === -1) {
@@ -107,6 +111,7 @@ export default function TestLab() {
           id: `test-${Math.random().toString(36).slice(2, 6)}`, wfName: wf.name, at: 'just now',
           verdict: failed ? 'FAILED' : 'PASSED', passed, skipped, failed, ms: Date.now() - startedRef.current,
         }, ...h]);
+        startedRef.current = 0; // re-arm for the next run
         setTestRuns(runs);
         return;
       }
