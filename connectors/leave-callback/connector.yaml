@@ -1,0 +1,19 @@
+# Leave-app integration: final step of the leave workflow — posts the
+# verdict back to the leave app (which deducts balance and notifies the
+# employee in-app). Only runs on the approved path.
+id: leave-callback
+name: Leave Verdict Callback
+version: 0.1.0
+description: Reports the approved verdict back to the leave app's callback endpoint.
+category: hr
+executor: http
+auth:
+  mode: header
+  headerName: X-Leave-Token
+  secretKey: CALLBACK_TOKEN
+http:
+  method: POST
+  url: "${secret.LEAVE_APP_URL}/api/flowforge/callback"
+  headers:
+    Content-Type: application/json
+  body: '{"verdict":"approved","employee_no":"${input.employee_no}","leave_type":"${input.leave_type}","from":"${input.from}","to":"${input.to}","days":"${input.days}"}'

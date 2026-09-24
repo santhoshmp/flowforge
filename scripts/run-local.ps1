@@ -16,6 +16,9 @@ $ErrorActionPreference = "Stop"
 $repo = Split-Path $PSScriptRoot -Parent
 Set-Location $repo
 
+# Drop-in connectors (leave app, etc.) load from the repo connectors/ dir.
+$env:FLOWFORGE_CONNECTOR_DIR = "$repo\connectors"
+
 if (-not $NoBuild) {
     Write-Host "==> building flowforge.exe"
     Push-Location "$repo\server-go"

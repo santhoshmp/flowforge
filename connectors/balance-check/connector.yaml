@@ -1,0 +1,16 @@
+# Leave-app integration: validates the employee's leave balance with the
+# leave app (authoritative source) BEFORE the final approval step.
+# 200 {ok,balance} -> proceed; 409 -> step fails -> request rejected.
+id: balance-check
+name: Leave Balance Check
+version: 0.1.0
+description: Validates leave days against the leave app's balance API before final approval.
+category: hr
+executor: http
+auth:
+  mode: header
+  headerName: X-Leave-Token
+  secretKey: CALLBACK_TOKEN
+http:
+  method: GET
+  url: "${secret.LEAVE_APP_URL}/api/balance/${input.employee_no}?days=${input.days}"

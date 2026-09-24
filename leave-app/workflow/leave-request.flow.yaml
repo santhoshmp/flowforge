@@ -1,0 +1,44 @@
+# flowforge/v1 — Leave app: leave request workflow.
+# Started via inbound webhook (input: employee_no, leave_type, from, to, days);
+# balance is validated by the leave app BEFORE the final approval; the verdict
+# is posted back to the leave app, which deducts balance and notifies.
+apiVersion: flowforge/v1
+kind: Workflow
+metadata:
+  name: leave-request
+  version: 1
+  createdBy: Leave app
+spec:
+  description: Employee leave request — manager approval, live balance validation, final HR approval, verdict callback.
+  trigger:
+    event: leave.requested
+  steps:
+    - id: validate_employee
+      type: mdm.validate
+      name: Validate employee
+      params:
+        entity: employees
+        match_on: emp_id
+    - id: manager_approval
+      type: human.approval
+      name: Manager approval
+      params:
+        approver: Reporting Manager
+        sla_hours: "24"
+      on_sla_breach: escalate
+    - id: balance_check
+      type: connector
+      name: Balance validation
+      params:
+        connector: balance-check
+    - id: hr_final
+      type: human.approval
+      name: HR final approval
+      params:
+        approver: HR Final Approval
+        sla_hours: "24"
+    - id: record_verdict
+      type: connector
+      name: Record verdict
+      params:
+        connector: leave-callback
