@@ -21,6 +21,9 @@ dist/
 *.secrets.key
 flowforge.key
 
+# Leave app runtime state (balances/requests persist locally)
+leave-app/data.json
+
 # SQLite databases
 *.db
 *.db-*

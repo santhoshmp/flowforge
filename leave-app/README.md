@@ -1,20 +1,28 @@
 # Leave App — FlowForge integration
 
 A standalone employee-facing leave application whose approval process runs
-entirely on FlowForge. Phase 1 (this) proves the loop with a stub service;
-Phase 2 adds the tiny React page.
+entirely on FlowForge.
 
-## Design (decided)
+- **`server.mjs`** — the app: serves the React page (`web/dist`), owns
+  balances + org map + request history, submits via the FlowForge webhook,
+  polls live status, and exposes the two workflow-facing routes
+  (`/api/balance/:emp?days=`, `/api/flowforge/callback`).
+- **`web/`** — the tiny React page (Vite, zero UI deps): identity picker,
+  Apply form (auto day count), My Requests with live pills + notifications,
+  and an Approvals inbox routed by the org map (manager gate) and role (HR).
+
+## Design (as built)
 
 - **Only the employee number changes hands** — routing stays in the workflow
-  design + the app's org map (employee № → manager shows the approval card).
-- **Approvals happen in the leave app** (Phase 2 UI; Phase 1 used the API):
-  approve → `POST /executions/{id}/approve`, reject → `.../cancel`.
+  design + the app's org map (employee № → manager sees the card; HR role
+  sees final-approval cards).
+- **Approvals happen in the leave app**: ✓ → `POST /executions/{id}/approve`,
+  ✕ → `.../cancel`.
 - **Balance check is a live validation before final approval**: a connector
-  step calls the leave app's balance API mid-flight (authoritative, not
-  stale submit-time data). 200 → proceed to HR; 409 → the run fails.
-- **Notifications live in the leave app**: the final connector step POSTs
-  the verdict back; the app deducts and notifies.
+  step calls the app's balance API mid-flight. 200 → proceed to HR; 409 →
+  the run fails. The app also pre-checks at submit (no pointless requests).
+- **Notifications live in the leave app**: the final connector posts the
+  verdict; the app deducts (idempotently) and notifies.
 
 ### Verdict semantics
 
@@ -23,48 +31,32 @@ Phase 2 adds the tiny React page.
 | `completed` | Approved | callback → deduct balance, notify |
 | `failed` at balance step | Rejected — insufficient balance | show rejection (no callback) |
 | `cancelled` | Rejected by approver | show rejection (no callback) |
-
-## Pieces
-
-| Piece | Where |
-|---|---|
-| Workflow artifact (5 steps) | `workflow/leave-request.flow.yaml` |
-| `balance-check` connector | `../connectors/balance-check/` |
-| `leave-callback` connector | `../connectors/leave-callback/` |
-| Stub service (balance + callback + introspection) | `stub/server.mjs` |
-| Secrets (server vault) | `LEAVE_APP_URL`, `CALLBACK_TOKEN` |
+| `waiting` | In flight | pill shows the gate (manager / HR review) |
 
 ## Run it
 
 ```bash
-# 1. leave-app stub (:9090)
-node leave-app/stub/server.mjs
+# 1. build the page once
+npm --prefix leave-app/web install && npm --prefix leave-app/web run build
 
 # 2. FlowForge with the drop-in connectors (scripts/run-local.ps1 sets this)
 FLOWFORGE_CONNECTOR_DIR=./connectors server-go/flowforge.exe serve
 
-# 3. secrets (once): PUT /api/v1/secrets
+# 3. the leave app (:9090) — page at http://localhost:9090
+node leave-app/server.mjs
+#    env: FF_URL/FF_USER/FF_PASS (FlowForge service account),
+#         LISTEN, LEAVE_TOKEN (must match the CALLBACK_TOKEN secret)
+
+# 4. one-time secrets on FlowForge:
 #    LEAVE_APP_URL=http://localhost:9090   CALLBACK_TOKEN=dev-leave-token
-
-# 4. deploy the workflow
-server-go/flowforge.exe import leave-app/workflow/leave-request.flow.yaml
-#    approve in the UI (or POST /workflows/{id}/approve)
-
-# 5. submit leave (external-system style)
-TOK=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/api/v1/workflows/<id>/hook | jq -r .token)
-curl -X POST http://localhost:8080/api/v1/hooks/<id> \
-  -H "X-FlowForge-Token: $TOK" -H "Content-Type: application/json" \
-  -d '{"employee_no":"E-4003","leave_type":"annual","from":"2026-10-05","to":"2026-10-09","days":5}'
+# 5. one-time workflow deploy:
+#    flowforge import leave-app/workflow/leave-request.flow.yaml  (+ approve)
 ```
 
-Stub balances: E-4003 (18), E-4007 (12), E-4417 (**2** — drives the
-insufficient-balance path). Introspection: `GET :9090/api/stub/requests`,
-`GET :9090/api/stub/balances`.
+Seeded people (pick one in the identity bar): E-4003 Sofia (18d),
+E-4007 Elena (12d, manager of Sofia & Jonas), E-4416 Aisha / E-4006 Priya
+(HR), E-4417 Jonas (**2d** — insufficient-balance story). Balances and
+requests persist in `leave-app/data.json` (gitignored).
 
-## Phase 2 (next)
+`stub/server.mjs` (Phase 1) remains as a minimal reference service.
 
-The tiny React page + thin Node service around these four routes:
-`POST /api/leave` (submit → webhook), `GET /api/leave/mine/:emp`,
-`GET /api/balance/:emp` (workflow-facing), `POST /api/flowforge/callback`
-(workflow-facing) — plus approve/reject cards and the notification badge.
