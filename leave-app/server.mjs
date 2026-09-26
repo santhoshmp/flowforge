@@ -49,11 +49,15 @@ const seed = () => ({
   balances: { 'E-4003': 18, 'E-4007': 12, 'E-4416': 20, 'E-4006': 25, 'E-4417': 2 },
   requests: [],
   notifications: [],
+  readAt: {}, // emp -> ISO timestamp of last "mark read"
 });
 
 let db;
 if (existsSync(DATA_FILE)) {
-  db = JSON.parse(await readFile(DATA_FILE, 'utf8'));
+  // Merge with seed defaults so state from older versions never crashes
+  // the service (missing fields gain their defaults).
+  db = { ...seed(), ...JSON.parse(await readFile(DATA_FILE, 'utf8')) };
+  db.readAt = db.readAt ?? {};
 } else {
   db = seed();
 }
@@ -87,7 +91,10 @@ async function ff(path, opts = {}) {
 
 async function discoverHook() {
   const wfs = await (await ff('/api/v1/workflows')).json();
-  const wf = wfs.find((w) => w.name === 'Leave Request' && w.status === 'deployed');
+  // Latest deployed version of the leave workflow wins.
+  const candidates = wfs.filter((w) => w.name === 'Leave Request' && w.status === 'deployed')
+    .sort((a, b) => b.version - a.version);
+  const wf = candidates[0];
   if (!wf) throw new Error('deploy workflow "Leave Request" first (leave-app/workflow/leave-request.flow.yaml)');
   const hook = await (await ff(`/api/v1/workflows/${wf.id}/hook`)).json();
   return hook; // { url, token }
@@ -110,6 +117,7 @@ function rverdict(req) { return req.verdict ?? 'pending'; }
 
 function applyInstanceState(req, inst) {
   const prev = rverdict(req);
+  const prevStage = req.live?.stage ?? '';
   const verdict =
     inst.status === 'completed' ? 'approved' :
     inst.status === 'failed' ? 'rejected' :
@@ -119,6 +127,11 @@ function applyInstanceState(req, inst) {
     stage: inst.waitingOn ?? '',
     error: inst.error ?? '',
   };
+  // Escalation: the manager gate breached its SLA — HR now holds the card.
+  if (prevStage !== 'HR Escalation' && req.live.stage === 'HR Escalation') {
+    req.escalated = true;
+    notify(req.employee_no, `Leave ${req.id} ESCALATED — manager did not respond within the SLA; HR now approves it.`);
+  }
   if (verdict !== 'pending') {
     req.verdict = verdict;
     if (verdict === 'approved' && !req.deducted) { // callback usually did this already
@@ -144,7 +157,8 @@ const json = (res, code, body) => { res.writeHead(code, { 'Content-Type': 'appli
 const readBody = (req) => new Promise((resolve) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve(null); } }); });
 const stageLabel = (req) => req.live?.stage === 'Reporting Manager' ? 'manager'
   : req.live?.stage === 'HR Final Approval' ? 'hr'
-    : req.live?.stage ? 'other' : 'processing';
+    : req.live?.stage === 'HR Escalation' ? 'escalated'
+      : req.live?.stage ? 'other' : 'processing';
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${LISTEN}`);
@@ -200,16 +214,41 @@ const server = createServer(async (req, res) => {
       if (rverdict(r) !== 'pending' || r.employee_no === emp) return false;
       const stage = stageLabel(r);
       if (stage === 'manager') return db.employees[r.employee_no]?.manager === emp;
-      if (stage === 'hr') return me.role === 'hr';
+      if (stage === 'hr' || stage === 'escalated') return me.role === 'hr';
       return false;
     });
+    const myNotifs = db.notifications.filter((n) => n.emp === emp).slice(0, 20);
+    const readAt = db.readAt[emp] ?? '';
+    const unread = myNotifs.filter((n) => n.at > readAt).length;
+    const pendingDays = mine.filter((r) => rverdict(r) === 'pending').reduce((a, r) => a + Number(r.days), 0);
     return json(res, 200, {
       me: { no: emp, ...me },
       balance: db.balances[emp] ?? 0,
+      pendingDays,
       requests: mine,
       approvals,
-      notifications: db.notifications.filter((n) => n.emp === emp).slice(0, 20),
+      notifications: myNotifs,
+      unread,
     });
+  }
+
+  if (req.method === 'POST' && p === '/api/leave/read') {
+    const b = await readBody(req);
+    if (b?.emp && db.employees[b.emp]) {
+      db.readAt[b.emp] = new Date().toISOString();
+      save();
+    }
+    return json(res, 200, { ok: true });
+  }
+
+  const steps = p.match(/^\/api\/leave\/(LV-\d+)\/steps$/);
+  if (req.method === 'GET' && steps) {
+    const req0 = db.requests.find((r) => r.id === steps[1]);
+    if (!req0) return json(res, 404, { error: 'unknown request' });
+    const r = await ff(`/api/v1/executions/${req0.instanceId}/steps`);
+    if (!r.ok) return json(res, 502, { error: `FlowForge steps failed (${r.status})` });
+    // Audit cross-link: the workflow's own step timeline.
+    return json(res, 200, { instanceId: req0.instanceId, steps: await r.json() });
   }
 
   if (req.method === 'POST' && p === '/api/leave') {

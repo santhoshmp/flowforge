@@ -1,15 +1,16 @@
-# flowforge/v1 — Leave app: leave request workflow.
+# flowforge/v1 — Leave app: leave request workflow (v2 with escalation).
 # Started via inbound webhook (input: employee_no, leave_type, from, to, days);
 # balance is validated by the leave app BEFORE the final approval; the verdict
 # is posted back to the leave app, which deducts balance and notifies.
+# A manager gate that breaches its SLA escalates to HR (real engine behavior).
 apiVersion: flowforge/v1
 kind: Workflow
 metadata:
   name: leave-request
-  version: 1
+  version: 2
   createdBy: Leave app
 spec:
-  description: Employee leave request — manager approval, live balance validation, final HR approval, verdict callback.
+  description: Employee leave request — manager approval (SLA-escalated), live balance validation, final HR approval, verdict callback.
   trigger:
     event: leave.requested
   steps:
@@ -26,6 +27,12 @@ spec:
         approver: Reporting Manager
         sla_hours: "24"
       on_sla_breach: escalate
+    - id: manager_escalation
+      type: human.approval
+      name: Escalated approval
+      params:
+        approver: HR Escalation
+        condition: previous_step.sla_breached
     - id: balance_check
       type: connector
       name: Balance validation

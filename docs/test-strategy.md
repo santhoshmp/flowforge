@@ -220,6 +220,15 @@
 | MERGE-04 | Guards: unknown record/entity 404, golden refuses, invalid action/merge target 400 | ✅ |
 | AI-03 | Live LLM authoring round-trip | 🟡 opt-in (`FLOWFORGE_LIVE_AI_KEY`/`OPENAI_API_KEY`; skips otherwise) |
 
+### SLA escalation — `engine/sla_test.go`
+| ID | Scenario | Automated |
+|---|---|---|
+| SLA-01 | A breached wait skips the approval (audit note) and the escalation step (`condition: previous_step.sla_breached`) waits on the escalator | ✅ |
+| SLA-02 | Inside the SLA window the wait is untouched | ✅ |
+| SLA-03 | Breach without an escalation step — the run simply continues | ✅ |
+| SLA-04 | Fractional-hour SLAs ("0.02" ≈ 72s) work for fast demo cycles | ✅ |
+| SLA-05 | No SLA configured — waits forever, never breaches | ✅ |
+
 ### Planned (placeholders for future phases)
 | ID | Scenario | Phase |
 |---|---|---|

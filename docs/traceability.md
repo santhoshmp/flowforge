@@ -60,6 +60,7 @@
 | F-HOOKS-01 | Inbound webhooks: per-workflow HMAC token, public token-gated trigger, body-as-input | `auth.HookToken/VerifyHookToken`, `api/hooks.go` | HOOK-01..03 | ✅ |
 | F-SCHED-01 | Scheduled triggers: 5-field cron on the trigger, due-slot scheduler with no-refire persistence + restart catch-up window | `internal/schedule`, `engine/scheduler.go`, `spec` trigger.schedule validation, serve 30s pass | SCHED-01..08 | ✅ |
 | F-NOTIF-01 | Real notify steps: email (SMTP) + slack (webhook, egress-gated) from vault secrets; simulated when unconfigured; safe-mode fails | `executor/notify.go` | NOTIF-01..05 | ✅ |
+| F-SLA-01 | Real SLA escalation: waiting approvals time out (fractional-hour SLAs supported), breach skips the gate with an audit note, escalation steps fire | `engine/tickWaiting` + resolve fall-through, `TickAllAt` deterministic clock | SLA-01..05 | ✅ |
 | F-RTY-01 | Per-step automatic retries: `params.retries` + `retry_delay` backoff gate, attempts persisted on StepRun, budgets clamped | `engine/engine.go` (retry branch + `stepRetries/stepRetryDelay`), `models.StepRun.Attempts/NextAttemptAt` | RTY-01..05 | ✅ |
 | F-DLQ-01 | Dead-letter queue: `GET /dlq` (failures, oldest first) + `requeue`; failure digests to `ALERT_WEBHOOK_URL` | `api/ops.go`, `executor.SendFailureAlert` | DLQ-01..03, DLQQ-01/02 | ✅ |
 | F-PROM-01 | Prometheus `/metrics` (instances/workflows/tasks/build_info/success rate), behind the auth gate | `api/ops.go` + dispatcher route | PMET-01/02 | ✅ |

@@ -47,6 +47,21 @@ button.primary:disabled { background: #cbd5e1; cursor: not-allowed; }
 .pill.no { background: #fee2e2; color: #991b1b; }
 .pill.wait { background: #fef3c7; color: #92400e; }
 .pill.run { background: #e0e7ff; color: #3730a3; }
+.pill.esc { background: #ffedd5; color: #9a3412; }
+.pend { color: #7c3aed; font-weight: 500; }
+.escNote { color: #9a3412; font-size: 12px; margin-top: 2px; }
+.clickable { cursor: pointer; }
+.reqBlock { border-bottom: 1px solid #f1f5f9; }
+.timeline { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0 0 10px; padding: 10px 12px; }
+.tl { font-size: 12px; color: #475569; padding: 2px 0; display: flex; align-items: center; gap: 8px; }
+.tlNote { color: #94a3b8; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.succeeded { background: #10b981; }
+.dot.failed { background: #ef4444; }
+.dot.waiting { background: #f59e0b; }
+.dot.skipped { background: #cbd5e1; }
+.dot.pending { background: #e2e8f0; }
+.dot.running { background: #6366f1; }
 
 .notifs { list-style: none; margin-bottom: 10px; }
 .notifs li { font-size: 12px; color: #64748b; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }

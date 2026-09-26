@@ -11,18 +11,19 @@ const daysBetween = (from, to) => {
   return d > 0 ? Math.round(d) : 0;
 };
 
-function Pill({ verdict, live }) {
+function Pill({ verdict, live, escalated }) {
   const map = {
     approved: ['approved', 'ok'],
     rejected: ['rejected', 'no'],
     pending: live?.stage === 'Reporting Manager' ? ['manager review', 'wait']
-      : live?.stage === 'HR Final Approval' ? ['HR review', 'wait']
-        : live?.status === 'failed' ? ['rejected', 'no']
-          : live?.status === 'cancelled' ? ['rejected', 'no']
-            : ['processing…', 'run'],
+      : live?.stage === 'HR Escalation' ? ['escalated 🔥', 'esc']
+        : live?.stage === 'HR Final Approval' ? ['HR review', 'wait']
+          : live?.status === 'failed' ? ['rejected', 'no']
+            : live?.status === 'cancelled' ? ['rejected', 'no']
+              : ['processing…', 'run'],
   };
   const [label, cls] = map[verdict ?? 'pending'] ?? ['?', 'run'];
-  return <span className={`pill ${cls}`}>{label}</span>;
+  return <span className={`pill ${cls}`}>{escalated && verdict === 'pending' && live?.stage !== 'HR Escalation' ? 'escalated · ' : ''}{label}</span>;
 }
 
 export default function App() {
@@ -32,6 +33,8 @@ export default function App() {
   const [tab, setTab] = useState('apply');
   const [form, setForm] = useState({ leave_type: 'annual', from: '', to: '', reason: '' });
   const [msg, setMsg] = useState(null);
+  const [openSteps, setOpenSteps] = useState(null); // request id with the timeline expanded
+  const [steps, setSteps] = useState({}); // id -> step timeline
 
   useEffect(() => { fetch('/api/org').then((r) => r.json()).then(setOrg).catch(() => {}); }, []);
   useEffect(() => { localStorage.setItem(ME_KEY, me); }, [me]);
@@ -69,8 +72,20 @@ export default function App() {
     if (r.ok) refresh();
   };
 
+  const markRead = () => { fetch('/api/leave/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ emp: me }) }).then(refresh).catch(() => {}); };
+
+  const toggleSteps = async (id) => {
+    if (openSteps === id) return setOpenSteps(null);
+    setOpenSteps(id);
+    if (!steps[id]) {
+      const r = await fetch(`/api/leave/${id}/steps`);
+      const b = await r.json();
+      if (r.ok) setSteps((s) => ({ ...s, [id]: b.steps ?? [] }));
+    }
+  };
+
   const badge = view?.approvals?.length ?? 0;
-  const notifCount = view?.notifications?.length ?? 0;
+  const notifCount = view?.unread ?? 0;
 
   return (
     <div className="wrap">
@@ -80,8 +95,8 @@ export default function App() {
           <select value={me} onChange={(e) => setMe(e.target.value)}>
             {org.map((e) => <option key={e.no} value={e.no}>{e.no} · {e.name}{e.role === 'hr' ? ' (HR)' : ''}</option>)}
           </select>
-          <span className="balance" title="leave balance">{view?.balance ?? '–'}d</span>
-          <button className={`bell ${notifCount ? 'on' : ''}`} title="notifications" onClick={() => setTab('mine')}>🔔{notifCount ? ` ${notifCount}` : ''}</button>
+          <span className="balance" title="leave balance · days pending">{view?.balance ?? '–'}d{view?.pendingDays ? <span className="pend"> · {view.pendingDays}d pending</span> : null}</span>
+          <button className={`bell ${notifCount ? 'on' : ''}`} title="notifications" onClick={() => { setTab('mine'); markRead(); }}>🔔{notifCount ? ` ${notifCount}` : ''}</button>
         </div>
       </header>
 
@@ -116,7 +131,7 @@ export default function App() {
 
       {tab === 'mine' && (
         <section className="card">
-          <h2>My requests</h2>
+          <h2>My requests <span className="hint inline">· click a request for its workflow timeline</span></h2>
           {view?.notifications?.length > 0 && (
             <ul className="notifs">
               {view.notifications.slice(0, 4).map((n) => <li key={n.id}>🔔 {n.text}</li>)}
@@ -124,13 +139,27 @@ export default function App() {
           )}
           {view?.requests?.length === 0 && <p className="empty">No requests yet — apply above.</p>}
           {view?.requests?.map((r) => (
-            <div key={r.id} className="row">
-              <div>
-                <b>{r.id}</b> · {r.leave_type} · {r.from} → {r.to} ({r.days}d)
-                {r.reason ? <span className="reason"> “{r.reason}”</span> : null}
-                {r.live?.error ? <div className="err">{r.live.error}</div> : null}
+            <div key={r.id} className="reqBlock">
+              <div className="row clickable" onClick={() => toggleSteps(r.id)}>
+                <div>
+                  <b>{r.id}</b> · {r.leave_type} · {r.from} → {r.to} ({r.days}d)
+                  {r.reason ? <span className="reason"> “{r.reason}”</span> : null}
+                  {r.escalated && r.verdict == null ? <div className="escNote">escalated — manager missed the SLA, HR holds the card</div> : null}
+                  {r.live?.error ? <div className="err">{r.live.error}</div> : null}
+                </div>
+                <Pill verdict={r.verdict} live={r.live} escalated={r.escalated} />
               </div>
-              <Pill verdict={r.verdict} live={r.live} />
+              {openSteps === r.id && (
+                <div className="timeline">
+                  {(steps[r.id] ?? []).map((s) => (
+                    <div key={s.stepId} className="tl">
+                      <span className={`dot ${s.status}`} /> {s.name}
+                      {s.note ? <span className="tlNote"> — {s.note}</span> : s.output ? <span className="tlNote"> — {s.output}</span> : null}
+                    </div>
+                  ))}
+                  {(steps[r.id] ?? []).length === 0 && <span className="hint">loading timeline…</span>}
+                </div>
+              )}
             </div>
           ))}
         </section>
@@ -145,7 +174,9 @@ export default function App() {
               <div>
                 <b>{r.id}</b> · {org.find((o) => o.no === r.employee_no)?.name ?? r.employee_no} · {r.leave_type}
                 {' '}{r.from} → {r.to} ({r.days}d)
-                <div className="hint inline">{r.live?.stage === 'HR Final Approval' ? 'final approval (balance validated ✓)' : 'manager approval'}</div>
+                <div className="hint inline">{r.live?.stage === 'HR Escalation'
+                  ? '🔥 ESCALATED — manager missed the SLA; you hold the card'
+                  : r.live?.stage === 'HR Final Approval' ? 'final approval (balance validated ✓)' : 'manager approval'}</div>
               </div>
               <div className="acts">
                 <button className="ok" onClick={() => act(r.id, 'approve')}>✓ Approve</button>

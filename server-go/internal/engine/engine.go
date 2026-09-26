@@ -130,7 +130,13 @@ func stepOutput(cur *models.StepRun, wfStep *models.WorkflowStep) string {
 
 // TickAll advances every running instance by exactly one transition. A nil
 // policy is treated as permissive (scripts/HTTP allowed, egress unrestricted).
+// Waiting instances are included so their SLA breaches can fire.
 func TickAll(s *store.Store, pol *policy.Policy) {
+	TickAllAt(s, pol, time.Now())
+}
+
+// TickAllAt is TickAll with an explicit clock (deterministic tests).
+func TickAllAt(s *store.Store, pol *policy.Policy, now time.Time) {
 	if pol == nil {
 		pol = &policy.Policy{}
 	}
@@ -139,8 +145,8 @@ func TickAll(s *store.Store, pol *policy.Policy) {
 		return
 	}
 	for i := range insts {
-		if insts[i].Status == models.InstRunning {
-			tickInstance(s, pol, &insts[i])
+		if insts[i].Status == models.InstRunning || insts[i].Status == models.InstWaiting {
+			tickInstance(s, pol, &insts[i], now)
 		}
 	}
 }
@@ -154,7 +160,15 @@ func runReal(wfStep *models.WorkflowStep, input map[string]any, pol *policy.Poli
 	return out, err, real, int(time.Since(start).Milliseconds())
 }
 
-func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance) {
+func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance, now time.Time) {
+	// Waiting instances: only SLA breaches can move them (approve/cancel come
+	// through their own APIs). A breached approval is skipped and the run
+	// continues — the escalation step (condition previous_step.sla_breached)
+	// takes over if the workflow has one.
+	if inst.Status == models.InstWaiting {
+		tickWaiting(s, pol, inst, now)
+		return
+	}
 	wf, err := s.GetWorkflow(inst.WorkflowID)
 	if err != nil || wf == nil {
 		return
@@ -199,7 +213,7 @@ func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance) {
 	// pending -> running
 	if cur.Status == models.StepPending {
 		cur.Status = models.StepRunning
-		cur.StartedAt = "now"
+		cur.StartedAt = now.UTC().Format(time.RFC3339)
 		inst.CurrentStep = idx
 		inst.StepRuns = runs
 		_ = s.UpsertInstance(*inst)
@@ -219,7 +233,10 @@ func tickInstance(s *store.Store, pol *policy.Policy, inst *models.Instance) {
 
 	// resolve
 	switch {
-	case wfStep != nil && wfStep.Params["condition"] == "previous_step.sla_breached":
+	// An approval gated on a previous SLA breach: skipped when nothing
+	// breached; when it DID breach, fall through to the human.approval
+	// handling below so the escalation approver still gets the task.
+	case wfStep != nil && wfStep.Params["condition"] == "previous_step.sla_breached" && !(idx > 0 && breached(runs[idx-1])):
 		cur.Status = models.StepSkipped
 		cur.Output = "no SLA breach — skipped"
 		cur.DurationMs = 5
@@ -364,6 +381,72 @@ func CancelInstance(s *store.Store, id string) (*models.Instance, error) {
 	}
 	_ = s.AddAudit(audit("You", "Instance cancelled", id, "execution"))
 	return inst, nil
+}
+
+// tickWaiting checks a waiting instance for SLA breaches. Non-breached
+// waits are left untouched (their transition comes from approve/cancel).
+func tickWaiting(s *store.Store, _ *policy.Policy, inst *models.Instance, now time.Time) {
+	for i := range inst.StepRuns {
+		r := &inst.StepRuns[i]
+		if r.Status != models.StepWaiting {
+			continue
+		}
+		wf, err := s.GetWorkflow(inst.WorkflowID)
+		if err != nil || wf == nil {
+			return
+		}
+		var step *models.WorkflowStep
+		for j := range wf.Steps {
+			if wf.Steps[j].ID == r.StepID {
+				step = &wf.Steps[j]
+			}
+		}
+		if step == nil {
+			return
+		}
+		hours := stepSLAHours(step)
+		if hours <= 0 {
+			return // no SLA on this gate
+		}
+		started, err := time.Parse(time.RFC3339, r.StartedAt)
+		if err != nil {
+			return
+		}
+		if now.Sub(started) < time.Duration(hours*float64(time.Hour)) {
+			return // still inside the SLA window
+		}
+		// Breached: skip the approval, let the run continue (escalation step
+		// with condition previous_step.sla_breached will now fire).
+		waitingOn := inst.WaitingOn
+		r.Status = models.StepSkipped
+		r.Note = fmt.Sprintf("SLA breached after %gh — escalated", hours)
+		r.Output = ""
+		inst.Status = models.InstRunning
+		inst.WaitingOn = ""
+		inst.CurrentStep = i
+		_ = s.UpsertInstance(*inst)
+		_ = s.AddAudit(audit("system", "SLA breached", inst.ID+" · "+r.Name+" — waiting on "+waitingOn+" timed out", "execution"))
+		return
+	}
+}
+
+// breached reports whether a step run was skipped due to an SLA breach.
+func breached(r models.StepRun) bool {
+	return r.Status == models.StepSkipped && strings.Contains(r.Note, "SLA breached")
+}
+
+// stepSLAHours parses params.sla_hours as (possibly fractional) hours.
+// Fractional values enable fast demo cycles ("0.02" ≈ 72 seconds); 0,
+// missing, or invalid means no SLA.
+func stepSLAHours(step *models.WorkflowStep) float64 {
+	if step == nil {
+		return 0
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(step.Params["sla_hours"]), 64)
+	if err != nil || v <= 0 {
+		return 0
+	}
+	return v
 }
 
 // stepRetries parses params.retries (max automatic retries; 0 = fail fast).
